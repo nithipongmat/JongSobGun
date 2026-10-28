@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PT Lab Booking System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // 🔥 เอา Firebase Config ของคุณมาวางตรงนี้
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        document.getElementById('booking-date').valueAsDate = new Date();
+
+        window.bookSlot = async function(resourceId, timeSlot) {
+            const studentName = document.getElementById('student-name').value.trim();
+            const bookingDate = document.getElementById('booking-date').value;
+
+            if (!studentName) {
+                alert('กรุณากรอกชื่อ-นามสกุล หรือชื่อเล่นก่อนทำการจองครับ');
+                document.getElementById('student-name').focus();
+                return;
+            }
+
+            try {
+                const q = query(collection(db, "bookings"), 
+                    where("date", "==", bookingDate),
+                    where("resource", "==", resourceId),
+                    where("timeSlot", "==", timeSlot)
+                );
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    alert('⚠️ ช่วงเวลานี้มีผู้จองไปแล้ว กรุณาเลือกช่วงเวลาอื่นครับ');
+                    return;
+                }
+
+                await addDoc(collection(db, "bookings"), {
+                    resource: resourceId,
+                    timeSlot: timeSlot,
+                    date: bookingDate,
+                    name: studentName,
+                    createdAt: Timestamp.now()
+                });
+
+                alert('✅ จองสำเร็จ! ระบบบันทึกข้อมูลเรียบร้อยแล้ว');
+            } catch (e) {
+                console.error("Error: ", e);
+                alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+            }
+        };
+
+        window.cancelBooking = async function(id) {
+            if (confirm('คุณต้องการยกเลิกการจองนี้ใช่หรือไม่?')) {
+                try {
+                    await deleteDoc(doc(db, "bookings", id));
+                    alert('ยกเลิกการจองเรียบร้อยแล้ว');
+                } catch (e) {
+                    console.error("Error: ", e);
+                }
+            }
+        };
+
+        function loadBookings() {
+            const tbody = document.getElementById('booking-list');
+            onSnapshot(collection(db, "bookings"), (snapshot) => {
+                tbody.innerHTML = '';
+                if (snapshot.empty) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">ยังไม่มีข้อมูลการจองในระบบ</td></tr>`;
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const id = docSnap.id;
+                    
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-slate-100 hover:bg-slate-50 transition';
+                    row.innerHTML = `
+                        <td class="p-3 text-slate-600">${data.date}</td>
+                        <td class="p-3 font-medium text-indigo-600">${data.resource}</td>
+                        <td class="p-3"><span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md text-xs font-medium">${data.timeSlot}</span></td>
+                        <td class="p-3 text-slate-700">${data.name}</td>
+                        <td class="p-3 text-right">
+                            <button onclick="cancelBooking('${id}')" class="text-xs text-rose-500 hover:bg-rose-50 px-2.5 py-1 rounded transition">ยกเลิก</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            });
+        }
+
+        loadBookings();
+    </script>
+    <style> body { font-family: 'Prompt', sans-serif; } </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-lg font-semibold"> PT Lab & Equipment Booking</h1>
+            <span class="text-xs bg-indigo-700 px-3 py-1.5 rounded-full">ระบบจอง Time Slot (Real-time)</span>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-6">
+        <div class="bg-white rounded-2xl p-6 shadow-sm mb-6 border border-slate-100">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-2">1. เลือกวันที่ต้องการจอง</label>
+                    <input type="date" id="booking-date" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-2">2. ชื่อผู้จอง (ชื่อเล่น / รหัสประจำตัว)</label>
+                    <input type="text" id="student-name" placeholder="เช่น กิตติ (เตียง 1)" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+            </div>
+        </div>
+
+        <h2 class="text-base font-semibold mb-4 text-slate-700">3. เลือกอุปกรณ์และช่วงเวลาที่ต้องการจอง</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-base text-slate-800">🛏️ เตียงฝึกปฏิบัติ #1</h3>
+                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-medium">เปิดให้จอง</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <button onclick="bookSlot('เตียงฝึกปฏิบัติ #1', '09:00 - 10:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">09:00 - 10:00</button>
+                        <button onclick="bookSlot('เตียงฝึกปฏิบัติ #1', '10:00 - 11:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">10:00 - 11:00</button>
+                        <button onclick="bookSlot('เตียงฝึกปฏิบัติ #1', '13:00 - 14:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">13:00 - 14:00</button>
+                        <button onclick="bookSlot('เตียงฝึกปฏิบัติ #1', '14:00 - 15:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">14:00 - 15:00</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-base text-slate-800">⚡ Ultrasonic Therapy</h3>
+                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-medium">เปิดให้จอง</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-4">
+                        <button onclick="bookSlot('Ultrasonic', '09:00 - 10:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">09:00 - 10:00</button>
+                        <button onclick="bookSlot('Ultrasonic', '10:00 - 11:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">10:00 - 11:00</button>
+                        <button onclick="bookSlot('Ultrasonic', '13:00 - 14:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">13:00 - 14:00</button>
+                        <button onclick="bookSlot('Ultrasonic', '14:00 - 15:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">14:00 - 15:00</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 class="text-base font-semibold mb-4 text-slate-700">📌 ตารางสรุปการจองทั้งหมด (ซิงค์ตรงกันทุกคน)</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-50 text-slate-700 uppercase text-xs">
+                        <tr>
+                            <th class="p-3 rounded-l-lg">วันที่</th>
+                            <th class="p-3">อุปกรณ์ / เตียง</th>
+                            <th class="p-3">ช่วงเวลา</th>
+                            <th class="p-3">ผู้จอง</th>
+                            <th class="p-3 rounded-r-lg text-right">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="booking-list">
+                        <tr><td colspan="5" class="p-4 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
