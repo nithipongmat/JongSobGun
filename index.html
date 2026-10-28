@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jongsob - PT Lab Booking System</title>
+    <title>Jongsob - ระบบจองซ้อมปฏิบัติงาน</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🔥 Firebase Configuration ของโปรเจกต์ jongsobgun
+        // 🔥 Firebase Configuration ของคุณ (jongsobgun)
         const firebaseConfig = {
             apiKey: "AIzaSyCr1Y65fm-rYh71AaZR6NpF4INvB8Vv1N8",
             authDomain: "jongsobgun.firebaseapp.com",
@@ -26,166 +26,243 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        document.getElementById('booking-date').valueAsDate = new Date();
+        // ตัวแปรเก็บสถานะผู้ใช้งานปัจจุบัน
+        let currentUser = null;
 
-        window.bookSlot = async function(resourceId, timeSlot) {
-            const studentName = document.getElementById('student-name').value.trim();
-            const bookingDate = document.getElementById('booking-date').value;
-
-            if (!studentName) {
-                alert('กรุณากรอกชื่อ-นามสกุล หรือชื่อเล่นก่อนทำการจองครับ');
-                document.getElementById('student-name').focus();
+        // ฟังก์ชันจำลองการเข้าสู่ระบบ
+        window.loginStudent = function() {
+            const searchInput = document.getElementById('student-search-input').value.trim();
+            if(!searchInput) {
+                alert('กรุณากรอกรหัสหรือชื่อนักศึกษา');
                 return;
             }
-
-            try {
-                const q = query(collection(db, "bookings"), 
-                    where("date", "==", bookingDate),
-                    where("resource", "==", resourceId),
-                    where("timeSlot", "==", timeSlot)
-                );
-                const querySnapshot = await getDocs(q);
-                
-                if (!querySnapshot.empty) {
-                    alert('⚠️ ช่วงเวลานี้มีผู้จองไปแล้ว กรุณาเลือกช่วงเวลาอื่นครับ');
-                    return;
-                }
-
-                await addDoc(collection(db, "bookings"), {
-                    resource: resourceId,
-                    timeSlot: timeSlot,
-                    date: bookingDate,
-                    name: studentName,
-                    createdAt: Timestamp.now()
-                });
-
-                alert('✅ จองสำเร็จ! ระบบ Jongsob บันทึกข้อมูลเรียบร้อยแล้ว');
-                document.getElementById('student-name').value = '';
-            } catch (e) {
-                console.error("Error: ", e);
-                alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
-            }
+            currentUser = searchInput;
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('user-display-name').innerText = currentUser;
+            document.getElementById('nav-user-badge').innerText = currentUser;
         };
 
-        window.cancelBooking = async function(id) {
-            if (confirm('คุณต้องการยกเลิกการจองนี้ใช่หรือไม่?')) {
-                try {
-                    await deleteDoc(doc(db, "bookings", id));
-                    alert('ยกเลิกการจองเรียบร้อยแล้ว');
-                } catch (e) {
-                    console.error("Error: ", e);
-                }
-            }
+        // สลับแท็บการทำงาน
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
         };
 
-        function loadBookings() {
-            const tbody = document.getElementById('booking-list');
-            onSnapshot(collection(db, "bookings"), (snapshot) => {
-                tbody.innerHTML = '';
-                if (snapshot.empty) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">ยังไม่มีข้อมูลการจองในระบบ</td></tr>`;
+        // โหลดข้อมูล Real-time จาก Firebase
+        function initRealtimeSync() {
+            // โหลดรายการจอง
+            onSnapshot(collection(db, "jongsob_bookings"), (snapshot) => {
+                const listEl = document.getElementById('all-bookings-list');
+                listEl.innerHTML = '';
+                if(snapshot.empty) {
+                    listEl.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">ไม่มีรายการจองซ้อมประจำวันนี้นี้</td></tr>`;
                     return;
                 }
-
-                snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    const id = docSnap.id;
-                    
-                    const row = document.createElement('tr');
-                    row.className = 'border-b border-slate-100 hover:bg-slate-50 transition';
-                    row.innerHTML = `
-                        <td class="p-3 text-slate-600">${data.date}</td>
-                        <td class="p-3 font-medium text-indigo-600">${data.resource}</td>
-                        <td class="p-3"><span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md text-xs font-medium">${data.timeSlot}</span></td>
-                        <td class="p-3 text-slate-700">${data.name}</td>
-                        <td class="p-3 text-right">
-                            <button onclick="cancelBooking('${id}')" class="text-xs text-rose-500 hover:bg-rose-50 px-2.5 py-1 rounded transition">ยกเลิก</button>
-                        </td>
+                snapshot.forEach(docSnap => {
+                    const d = docSnap.data();
+                    listEl.innerHTML += `
+                        <tr class="border-b border-slate-100">
+                            <td class="p-3 text-indigo-600 font-medium">${d.equipment}</td>
+                            <td class="p-3">${d.partner1} & ${d.partner2}</td>
+                            <td class="p-3">${d.room}</td>
+                            <td class="p-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs">จองแล้ว</span></td>
+                            <td class="p-3">${d.timeSlot}</td>
+                        </tr>
                     `;
-                    tbody.appendChild(row);
                 });
             });
         }
 
-        loadBookings();
+        window.onload = function() {
+            initRealtimeSync();
+        };
     </script>
     <style> body { font-family: 'Prompt', sans-serif; } </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
-    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-lg font-semibold">📌 Jongsob - PT Lab Booking</h1>
-            <span class="text-xs bg-indigo-700 px-3 py-1.5 rounded-full">ระบบจอง Time Slot (Real-time)</span>
+
+    <!-- Modal เข้าสู่ระบบนักศึกษา -->
+    <div id="login-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">👤</div>
+                <h2 class="text-xl font-bold text-slate-800">เข้าสู่ระบบนักศึกษา</h2>
+                <p class="text-xs text-slate-500 mt-1">พิมพ์รหัสักศึกษา (เช่น 6810011) หรือชื่อ แล้วเลือกจากรายการ</p>
+            </div>
+            <div class="mb-4">
+                <label class="block text-xs font-semibold text-slate-500 mb-2">ค้นหารหัสนักศึกษา / ชื่อ-นามสกุล</label>
+                <input type="text" id="student-search-input" placeholder="พิมพ์รหัส 6810... หรือชื่อ..." class="w-full px-4 py-3 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+            </div>
+            <button onclick="loginStudent()" class="w-full bg-indigo-600 text-white py-3 rounded-2xl font-medium hover:bg-indigo-700 transition text-sm">เข้าสู่ระบบ</button>
         </div>
+    </div>
+
+    <!-- Header Navbar -->
+    <header class="bg-indigo-900 text-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-700 p-2 rounded-xl">🏥</div>
+                <div>
+                    <h1 class="font-bold text-base">ระบบจองซ้อมปฏิบัติงาน</h1>
+                    <p class="text-xs text-indigo-300">Practical Skill & Equipment Booking System</p>
+                </div>
+            </div>
+            <div class="bg-indigo-800 px-4 py-1.5 rounded-full text-xs flex items-center space-x-2">
+                <span id="nav-user-badge">6810011</span>
+                <span id="user-display-name" class="font-medium">นิธิพงษ์ มาทิพย์</span>
+            </div>
+        </div>
+        <!-- Menu Navigation Tabs -->
+        <nav class="max-w-6xl mx-auto px-4 flex space-x-1 overflow-x-auto text-sm border-t border-indigo-800/50">
+            <button onclick="switchTab('tab-home')" class="py-3 px-4 hover:bg-indigo-800 transition font-medium border-b-2 border-transparent">🏠 หน้าหลัก</button>
+            <button onclick="switchTab('tab-booking')" class="py-3 px-4 hover:bg-indigo-800 transition font-medium border-b-2 border-transparent">📅 จองซ้อมปฏิบัติ</button>
+            <button onclick="switchTab('tab-all')" class="py-3 px-4 hover:bg-indigo-800 transition font-medium border-b-2 border-transparent">📋 การจองทั้งหมด</button>
+            <button onclick="switchTab('tab-myqueue')" class="py-3 px-4 hover:bg-indigo-800 transition font-medium border-b-2 border-transparent">👤 คิวของฉัน</button>
+            <button onclick="switchTab('tab-admin')" class="py-3 px-4 hover:bg-indigo-800 transition font-medium border-b-2 border-transparent">⚙️ จัดการระบบ (Admin)</button>
+        </nav>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 py-6">
-        <div class="bg-white rounded-2xl p-6 shadow-sm mb-6 border border-slate-100">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <main class="max-w-6xl mx-auto px-4 py-6">
+        
+        <!-- Tab 1: หน้าหลัก -->
+        <div id="tab-home" class="tab-content">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-6 flex justify-between items-center">
                 <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">1. เลือกวันที่ต้องการจอง</label>
-                    <input type="date" id="booking-date" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <span class="text-xs font-semibold text-slate-400 uppercase">เวลาปัจจุบัน</span>
+                    <div id="live-clock" class="text-2xl font-bold text-indigo-900 mt-1">11:20:06</div>
+                    <span class="text-xs text-slate-500">วันพุธที่ 28 ตุลาคม 2569</span>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">2. ชื่อผู้จอง (ชื่อเล่น / รหัสประจำตัว)</label>
-                    <input type="text" id="student-name" placeholder="เช่น กิตติ (เตียง 1)" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                <div class="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-xs font-medium">
+                    วันนี้เปิดซ้อมห้องปฏิบัติการ: ไม่มีห้องเปิดซ้อมวันนี้
+                </div>
+            </div>
+
+            <!-- ปฏิทินจองซ้อม -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800 flex items-center space-x-2"><span>📅 ปฏิทินจองซ้อม</span></h3>
+                    <span class="text-sm font-medium text-slate-500">ตุลาคม 2569</span>
+                </div>
+                <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-400 mb-2">
+                    <span>อา</span><span>จ</span><span>อ</span><span>พ</span><span>พฤ</span><span>ศ</span><span>ส</span>
+                </div>
+                <div class="grid grid-cols-7 gap-2 text-center text-sm">
+                    <div class="p-2 text-slate-300">27</div><div class="p-2 text-slate-300">28</div><div class="p-2 text-slate-300">29</div><div class="p-2 text-slate-300">30</div><div class="p-2">1</div><div class="p-2">2</div><div class="p-2">3</div>
+                    <div class="p-2">4</div><div class="p-2">5</div><div class="p-2">6</div><div class="p-2">7</div><div class="p-2">8</div><div class="p-2">9</div><div class="p-2">10</div>
+                    <div class="p-2">11</div><div class="p-2">12</div><div class="p-2">13</div><div class="p-2">14</div><div class="p-2">15</div><div class="p-2">16</div><div class="p-2">17</div>
+                    <div class="p-2">18</div><div class="p-2">19</div><div class="p-2">20</div><div class="p-2">21</div><div class="p-2">22</div><div class="p-2">23</div><div class="p-2">24</div>
+                    <div class="p-2">25</div><div class="p-2">26</div><div class="p-2">27</div><div class="p-2 bg-indigo-600 text-white rounded-xl font-bold">28</div><div class="p-2">29</div><div class="p-2">30</div><div class="p-2">31</div>
                 </div>
             </div>
         </div>
 
-        <h2 class="text-base font-semibold mb-4 text-slate-700">3. เลือกอุปกรณ์และช่วงเวลาที่ต้องการจองผ่าน Jongsob</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-semibold text-base text-slate-800">🛏️ เตียงฝึกปฏิบัติ #1</h3>
-                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-medium">เปิดให้จอง</span>
+        <!-- Tab 2: จองซ้อมปฏิบัติ -->
+        <div id="tab-booking" class="tab-content hidden">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 max-w-xl mx-auto">
+                <h3 class="font-bold text-slate-800 mb-1">📌 จองคิวซ้อมปฏิบัติงาน</h3>
+                <p class="text-xs text-slate-400 mb-6">เลือกระบุวันที่ ที่ต้องการซ้อม และอุปกรณ์ที่ต้องการฝึกซ้อมปฏิบัติ</p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่ต้องการเข้าซ้อม</label>
+                        <input type="date" class="w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
-                    <div class="grid grid-cols-2 gap-2 mt-4">
-                        <button onclick="bookSlot('เตียงฝึกปฏิบัติ #1', '09:00 - 10:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">09:00 - 10:00</button>
-                        <button onclick="bookSlot('เตียงฝึกปฏิบัติ #1', '10:00 - 11:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">10:00 - 11:00</button>
-                        <button onclick="bookSlot('เตียงฝึกปฏิบัติ #1', '13:00 - 14:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">13:00 - 14:00</button>
-                        <button onclick="bookSlot('เตียงฝึกปฏิบัติ #1', '14:00 - 15:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">14:00 - 15:00</button>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">เลือกห้องปฏิบัติการ</label>
+                        <select class="w-full px-4 py-2.5 border rounded-xl text-sm outline-none bg-white">
+                            <option>-- ไม่มีห้องเปิดในวันที่เลือก --</option>
+                        </select>
                     </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-semibold text-base text-slate-800">⚡ Ultrasonic Therapy</h3>
-                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-medium">เปิดให้จอง</span>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">ผู้จองคนที่ 1 (ตัวคุณ - ล็อกออโต้)</label>
+                        <input type="text" value="6810011 - นิธิพงษ์ มาทิพย์" disabled class="w-full px-4 py-2.5 bg-slate-100 border rounded-xl text-sm text-slate-500">
                     </div>
-                    <div class="grid grid-cols-2 gap-2 mt-4">
-                        <button onclick="bookSlot('Ultrasonic', '09:00 - 10:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">09:00 - 10:00</button>
-                        <button onclick="bookSlot('Ultrasonic', '10:00 - 11:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">10:00 - 11:00</button>
-                        <button onclick="bookSlot('Ultrasonic', '13:00 - 14:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">13:00 - 14:00</button>
-                        <button onclick="bookSlot('Ultrasonic', '14:00 - 15:00')" class="text-xs py-2.5 px-3 border rounded-xl hover:bg-indigo-50 hover:border-indigo-300 border-slate-200 transition text-left font-medium">14:00 - 15:00</button>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">ผู้จองคนที่ 2 (คู่ซ้อมปฏิบัติ)</label>
+                        <select class="w-full px-4 py-2.5 border rounded-xl text-sm outline-none bg-white">
+                            <option>-- เลือกคู่ซ้อมจากรายชื่อนักศึกษา --</option>
+                        </select>
                     </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">เลือกอุปกรณ์ซ้อมปฏิบัติ</label>
+                        <select class="w-full px-4 py-2.5 border rounded-xl text-sm outline-none bg-white">
+                            <option>-- ยังไม่มีอุปกรณ์ในระบบ --</option>
+                        </select>
+                    </div>
+                    <button class="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 transition text-sm mt-4">ยืนยันการจองคิวซ้อม</button>
                 </div>
             </div>
         </div>
 
-        <div class="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 class="text-base font-semibold mb-4 text-slate-700">📌 ตารางสรุปการจองผ่าน Jongsob (ซิงค์ตรงกันทุกคน)</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-600">
-                    <thead class="bg-slate-50 text-slate-700 uppercase text-xs">
-                        <tr>
-                            <th class="p-3 rounded-l-lg">วันที่</th>
-                            <th class="p-3">อุปกรณ์ / เตียง</th>
-                            <th class="p-3">ช่วงเวลา</th>
-                            <th class="p-3">ผู้จอง</th>
-                            <th class="p-3 rounded-r-lg text-right">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="booking-list">
-                        <tr><td colspan="5" class="p-4 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>
-                    </tbody>
-                </table>
+        <!-- Tab 3: การจองทั้งหมด -->
+        <div id="tab-all" class="tab-content hidden">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <h3 class="font-bold text-slate-800 mb-4">📋 ตารางการจองและคู่ที่กำลังซ้อมทั้งหมด</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 uppercase text-xs text-slate-500">
+                            <tr>
+                                <th class="p-3">อุปกรณ์</th>
+                                <th class="p-3">คู่ซ้อมปฏิบัติ</th>
+                                <th class="p-3">ห้อง</th>
+                                <th class="p-3">สถานะคิว</th>
+                                <th class="p-3">เวลาซ้อม / คงเหลือ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="all-bookings-list">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-400">ไม่มีรายการจองซ้อมประจำวันนี้</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+
+        <!-- Tab 4: คิวของฉัน -->
+        <div id="tab-myqueue" class="tab-content hidden">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <h3 class="font-bold text-slate-800 mb-1">🕒 รายการจองซ้อมของฉันและคู่ซ้อม</h3>
+                <p class="text-xs text-slate-400 mb-6">ซิงค์ข้อมูลกับรหัสักศึกษาของคุณและคู่ซ้อมที่จองร่วมกัน สามารถกดเริ่มใช้งานเมื่อได้รับอุปกรณ์</p>
+                <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400 text-sm">
+                    คุณยังไม่มีรายการจองซ้อมในระบบ
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: จัดการระบบ (Admin) -->
+        <div id="tab-admin" class="tab-content hidden">
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl text-xs mb-6">
+                ⚠️ โหมดผู้ดูแลระบบ (เปิดสิทธิ์ให้ทุกคน): สมาชิกสามารถเพิ่ม, แก้ไข หรือลบข้อมูลห้องและอุปกรณ์ได้ทันที Real-time
+            </div>
+            
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800">🏫 จัดการเปิดห้องปฏิบัติการ</h3>
+                    <button class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-medium hover:bg-indigo-700">+ เพิ่มห้องเปิดซ้อม</button>
+                </div>
+                <div class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-400 text-xs">
+                    ยังไม่มีห้องปฏิบัติการในระบบ (กดเพิ่มห้องได้เลย)
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800">⚡ จัดการรายการอุปกรณ์ซ้อม</h3>
+                    <button class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-medium hover:bg-indigo-700">+ เพิ่มอุปกรณ์</button>
+                </div>
+                <div class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-400 text-xs">
+                    ยังไม่มีอุปกรณ์ซ้อมในระบบ (กดเพิ่มอุปกรณ์ได้เลย)
+                </div>
+            </div>
+        </div>
+
     </main>
+
+    <script>
+        // อัปเดตเวลาแบบเรียลไทม์
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toTimeString().split(' ')[0];
+        }, 1000);
+    </script>
 </body>
 </html>
-
