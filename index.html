@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PT Lab Booking System</title>
+    <title>Jongsob - PT Lab Booking System</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -12,14 +12,15 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🔥 เอา Firebase Config ของคุณมาวางตรงนี้
+        // 🔥 Firebase Configuration ของโปรเจกต์ jongsobgun
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyCr1Y65fm-rYh71AaZR6NpF4INvB8Vv1N8",
+            authDomain: "jongsobgun.firebaseapp.com",
+            projectId: "jongsobgun",
+            storageBucket: "jongsobgun.firebasestorage.app",
+            messagingSenderId: "26642531272",
+            appId: "1:26642531272:web:0b55c0357723af1ebb76fd",
+            measurementId: "G-M6K16RD8E8"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -58,7 +59,8 @@
                     createdAt: Timestamp.now()
                 });
 
-                alert('✅ จองสำเร็จ! ระบบบันทึกข้อมูลเรียบร้อยแล้ว');
+                alert('✅ จองสำเร็จ! ระบบ Jongsob บันทึกข้อมูลเรียบร้อยแล้ว');
+                document.getElementById('student-name').value = '';
             } catch (e) {
                 console.error("Error: ", e);
                 alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
@@ -112,7 +114,7 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen">
     <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-lg font-semibold"> PT Lab & Equipment Booking</h1>
+            <h1 class="text-lg font-semibold">📌 Jongsob - PT Lab Booking</h1>
             <span class="text-xs bg-indigo-700 px-3 py-1.5 rounded-full">ระบบจอง Time Slot (Real-time)</span>
         </div>
     </header>
@@ -131,7 +133,7 @@
             </div>
         </div>
 
-        <h2 class="text-base font-semibold mb-4 text-slate-700">3. เลือกอุปกรณ์และช่วงเวลาที่ต้องการจอง</h2>
+        <h2 class="text-base font-semibold mb-4 text-slate-700">3. เลือกอุปกรณ์และช่วงเวลาที่ต้องการจองผ่าน Jongsob</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
                 <div>
@@ -165,7 +167,7 @@
         </div>
 
         <div class="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 class="text-base font-semibold mb-4 text-slate-700">📌 ตารางสรุปการจองทั้งหมด (ซิงค์ตรงกันทุกคน)</h3>
+            <h3 class="text-base font-semibold mb-4 text-slate-700">📌 ตารางสรุปการจองผ่าน Jongsob (ซิงค์ตรงกันทุกคน)</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-slate-600">
                     <thead class="bg-slate-50 text-slate-700 uppercase text-xs">
@@ -186,3 +188,4 @@
     </main>
 </body>
 </html>
+
