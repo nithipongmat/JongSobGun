@@ -154,14 +154,14 @@
                 <div class="lg:col-span-7 space-y-6">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-door-open text-indigo-600"></i> ห้องปฏิบัติการที่เปิดซ้อมประจำวัน <span id="selectedDateLabel" class="text-indigo-600"></span>
+                            <i class="fa-solid fa-door-open text-indigo-600"></i> ห้องปฏิบัติการที่เปิดซ้อม <span class="text-xs text-slate-400 font-normal">(แสดงผลรายสัปดาห์)</span>
                         </h3>
-                        <div id="dashboardRoomsList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                        <div id="dashboardRoomsList" class="space-y-2"></div>
                     </div>
 
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-toolbox text-indigo-600"></i> สถานะอุปกรณ์ซ้อมปฏิบัติงานประจำวัน
+                            <i class="fa-solid fa-toolbox text-indigo-600"></i> สถานะอุปกรณ์ซ้อมปฏิบัติงานประจำวัน <span id="selectedDateLabel" class="text-indigo-600 text-xs"></span>
                         </h3>
                         <div id="dashboardEquipmentList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     </div>
@@ -176,13 +176,13 @@
                     <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
                         <i class="fa-solid fa-calendar-plus text-indigo-600"></i> จองคิวซ้อมปฏิบัติงาน
                     </h2>
-                    <p class="text-xs text-slate-500 mt-1">เลือกระบุวันที่ คู่ซ้อม และอุปกรณ์ที่ต้องการฝึกซ้อมปฏิบัติ</p>
+                    <p class="text-xs text-slate-500 mt-1">เลือกระบุวันที่ คู่ซ้อม อุปกรณ์ และรอบเวลาที่ต้องการฝึกซ้อม</p>
                 </div>
 
                 <form onsubmit="submitBooking(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">วันที่ต้องการเข้าซ้อม</label>
-                        <input type="date" id="bookDate" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <input type="date" id="bookDate" onchange="onBookingDateChange()" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
                     </div>
 
                     <div>
@@ -199,8 +199,15 @@
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">เลือกอุปกรณ์ซ้อมปฏิบัติ</label>
-                        <select id="bookEquipmentSelect" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <select id="bookEquipmentSelect" onchange="updateTimeSlots()" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
                             <option value="">-- เลือกอุปกรณ์ --</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">เลือกรอบเวลาซ้อม (Time Slot)</label>
+                        <select id="bookTimeSlot" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold text-indigo-600">
+                            <option value="">-- กรุณาเลือกวันที่และอุปกรณ์ก่อน --</option>
                         </select>
                     </div>
 
@@ -217,34 +224,24 @@
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
                     <div>
                         <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-users-viewfinder text-indigo-600"></i> ตารางการจองและคู่ที่กำลังซ้อมทั้งหมด
+                            <i class="fa-solid fa-users-viewfinder text-indigo-600"></i> ตารางการจองและรอบเวลาทั้งหมด
                         </h2>
                     </div>
                     <input type="date" id="allBookingsFilterDate" onchange="renderAllBookingsView()" class="px-3.5 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium">
                 </div>
 
-                <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-3 flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> คู่ที่กำลังใช้อุปกรณ์ซ้อมอยู่ในขณะนี้
-                    </h3>
-                    <div id="activePairsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-                </div>
-
-                <div class="pt-4">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">คิวการจองทั้งหมดประจำวัน</h3>
-                    <div class="overflow-x-auto rounded-xl border border-slate-200">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
-                                    <th class="p-3">อุปกรณ์</th>
-                                    <th class="p-3">คู่ซ้อมปฏิบัติ</th>
-                                    <th class="p-3">สถานะคิว</th>
-                                    <th class="p-3 text-right">เวลาซ้อม / คงเหลือ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="allBookingsTableBody" class="divide-y divide-slate-100"></tbody>
-                        </table>
-                    </div>
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                                <th class="p-3">รอบเวลา</th>
+                                <th class="p-3">อุปกรณ์</th>
+                                <th class="p-3">คู่ซ้อมปฏิบัติ</th>
+                                <th class="p-3 text-right">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allBookingsTableBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -304,12 +301,12 @@
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">เวลาเริ่ม</label>
-                        <input type="time" id="modalRoomStartTime" required value="09:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">เวลาเริ่มเปิดห้อง</label>
+                        <input type="time" id="modalRoomStartTime" required value="16:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">เวลาปิด</label>
-                        <input type="time" id="modalRoomEndTime" required value="16:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
+                        <input type="time" id="modalRoomEndTime" required value="20:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
@@ -409,12 +406,8 @@
         let currentUser = null;
         let selectedLoginStudent = null;
         
-        // 🕒 แก้ไขดึงวันที่ปัจจุบันตามเวลาท้องถิ่นประเทศไทย (Local Date - YYYY-MM-DD) เป๊ะๆ
         const nowLocal = new Date();
-        const yearLocal = nowLocal.getFullYear();
-        const monthLocal = String(nowLocal.getMonth() + 1).padStart(2, '0');
-        const dayLocal = String(nowLocal.getDate()).padStart(2, '0');
-        let selectedDateStr = `${yearLocal}-${monthLocal}-${dayLocal}`;
+        let selectedDateStr = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
         let currentCalendarDate = new Date();
 
         let roomsData = [];
@@ -438,7 +431,6 @@
             document.getElementById('allBookingsFilterDate').value = selectedDateStr;
 
             initFirebaseListeners();
-            setInterval(tickTimers, 1000);
         });
 
         function initFirebaseListeners() {
@@ -471,9 +463,7 @@
             setInterval(updateClock, 1000);
         }
 
-        function showLoginModal() {
-            document.getElementById('loginModal').classList.remove('hidden');
-        }
+        function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
 
         function handleLoginSearch() {
             const query = document.getElementById('loginSearchInput').value.trim().toLowerCase();
@@ -622,47 +612,117 @@
 
         function updateDashboardViews() {
             const d = new Date(selectedDateStr);
-            document.getElementById('selectedDateLabel').textContent = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+            document.getElementById('selectedDateLabel').textContent = `(${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })})`;
 
-            const selectedRooms = roomsData.filter(r => r.date === selectedDateStr);
-            const roomsBox = document.getElementById('dashboardRoomsList');
-            roomsBox.innerHTML = selectedRooms.length > 0 
-                ? selectedRooms.map(r => `<div class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl"><div class="font-bold text-slate-800 text-xs">${r.name}</div><div class="text-[11px] text-slate-500 mt-1">${r.startTime} - ${r.endTime} น.</div></div>`).join('')
-                : `<div class="col-span-2 text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีห้องปฏิบัติการเปิดให้บริการในวันที่เลือก</div>`;
+            // 📅 คำนวณหาช่วง 7 วันของสัปดาห์ (จากวันที่เลือกในปฏิทิน)
+            const selDate = new Date(selectedDateStr);
+            const dayOfWeek = selDate.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ...
+            const startOfWeek = new Date(selDate);
+            startOfWeek.setDate(selDate.getDate() - dayOfWeek); // เริ่มวันอาทิตย์
+
+            let weekDaysHtml = '';
+            for (let i = 0; i < 7; i++) {
+                let currDate = new Date(startOfWeek);
+                currDate.setDate(startOfWeek.getDate() + i);
+                let currDateStr = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
+                
+                let roomsOnThisDay = roomsData.filter(r => r.date === currDateStr);
+                let dayName = currDate.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' });
+                let isToday = currDateStr === selectedDateStr;
+
+                let roomContent = roomsOnThisDay.length > 0 
+                    ? roomsOnThisDay.map(r => `<span class="bg-indigo-100 text-indigo-800 text-[11px] font-bold px-2 py-0.5 rounded-md mr-1">${r.name} (${r.startTime}-${r.endTime})</span>`).join('')
+                    : `<span class="text-slate-400 text-xs">ไม่มีห้องเปิดซ้อม</span>`;
+
+                weekDaysHtml += `
+                    <div class="p-2.5 rounded-xl border ${isToday ? 'border-indigo-500 bg-indigo-50/40' : 'border-slate-100 bg-slate-50/60'} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div class="font-bold text-xs text-slate-700 w-32">${dayName}</div>
+                        <div class="flex flex-wrap gap-1 flex-1">${roomContent}</div>
+                    </div>
+                `;
+            }
+            document.getElementById('dashboardRoomsList').innerHTML = weekDaysHtml;
 
             const eqBox = document.getElementById('dashboardEquipmentList');
             if (equipmentData.length > 0) {
                 eqBox.innerHTML = equipmentData.map(eq => {
-                    const activeForEq = bookingsData.filter(b => b.equipmentId === eq.id && b.date === selectedDateStr && b.status !== 'ended');
-                    const inUseCount = activeForEq.filter(b => b.status === 'in-use').length;
-                    const availableQty = Math.max(0, parseInt(eq.qty) - inUseCount);
-                    const queueCount = activeForEq.filter(b => b.status === 'queued').length;
-                    const waitTime = queueCount * parseInt(eq.duration);
-
+                    const bookedCount = bookingsData.filter(b => b.equipmentId === eq.id && b.date === selectedDateStr).length;
                     return `
                         <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
                             <div class="font-bold text-slate-800 text-xs flex justify-between items-start">
                                 <span>${eq.name}</span>
                                 <span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[10px]">รอบละ ${eq.duration} นาที</span>
                             </div>
-                            <div class="grid grid-cols-3 gap-1 text-center pt-1 border-t border-slate-200/60 text-[11px]">
-                                <div class="bg-white p-1.5 rounded border border-slate-100"><div class="text-slate-400 text-[10px]">ว่าง</div><div class="font-bold text-emerald-600">${availableQty}/${eq.qty}</div></div>
-                                <div class="bg-white p-1.5 rounded border border-slate-100"><div class="text-slate-400 text-[10px]">รอคิว</div><div class="font-bold text-amber-600">${queueCount} คิว</div></div>
-                                <div class="bg-white p-1.5 rounded border border-slate-100"><div class="text-slate-400 text-[10px]">รอประมาณ</div><div class="font-bold text-indigo-600">${waitTime} นาที</div></div>
+                            <div class="text-xs text-slate-500 pt-1 border-t border-slate-200/60">
+                                มีการจองแล้ว: <strong class="text-indigo-600">${bookedCount} รอบ</strong>
                             </div>
                         </div>
                     `;
                 }).join('');
             } else {
-                eqBox.innerHTML = `<div class="col-span-2 text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายการอุปกรณ์ซ้อมในระบบ (เพิ่มได้ที่หน้าจัดการระบบ Admin)</div>`;
+                eqBox.innerHTML = `<div class="col-span-2 text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายการอุปกรณ์ซ้อมในระบบ</div>`;
             }
         }
 
         function onBookingDateChange() {
+            const dateVal = document.getElementById('bookDate').value;
             const eqSelect = document.getElementById('bookEquipmentSelect');
+            
             eqSelect.innerHTML = equipmentData.length > 0
-                ? equipmentData.map(e => `<option value="${e.id}">${e.name} (รอบละ ${e.duration} นาที)</option>`).join('')
+                ? '<option value="">-- เลือกอุปกรณ์ --</option>' + equipmentData.map(e => `<option value="${e.id}">${e.name} (รอบละ ${e.duration} นาที)</option>`).join('')
                 : '<option value="">-- ยังไม่มีอุปกรณ์ในระบบ --</option>';
+            
+            updateTimeSlots();
+        }
+
+        function updateTimeSlots() {
+            const dateVal = document.getElementById('bookDate').value;
+            const eqId = document.getElementById('bookEquipmentSelect').value;
+            const slotSelect = document.getElementById('bookTimeSlot');
+
+            if (!dateVal || !eqId) {
+                slotSelect.innerHTML = '<option value="">-- กรุณาเลือกวันที่และอุปกรณ์ก่อน --</option>';
+                return;
+            }
+
+            const eq = equipmentData.find(e => e.id === eqId);
+            const roomsOnDate = roomsData.filter(r => r.date === dateVal);
+
+            if (!eq || roomsOnDate.length === 0) {
+                slotSelect.innerHTML = '<option value="">-- ไม่มีห้องเปิดให้บริการในวันที่เลือก --</option>';
+                return;
+            }
+
+            let slotsHtml = '<option value="">-- เลือกรอบเวลาซ้อม --</option>';
+            const durationMins = parseInt(eq.duration);
+
+            roomsOnDate.forEach(room => {
+                let [startH, startM] = room.startTime.split(':').map(Number);
+                let [endH, endM] = room.endTime.split(':').map(Number);
+
+                let currentMins = startH * 60 + startM;
+                let endMins = endH * 60 + endM;
+
+                while (currentMins + durationMins <= endMins) {
+                    let nextMins = currentMins + durationMins;
+
+                    let sh = String(Math.floor(currentMins / 60)).padStart(2, '0');
+                    let sm = String(currentMins % 60).padStart(2, '0');
+                    let eh = String(Math.floor(nextMins / 60)).padStart(2, '0');
+                    let em = String(nextMins % 60).padStart(2, '0');
+
+                    let timeRange = `${sh}:${sm} - ${eh}:${em}`;
+                    let isBooked = bookingsData.some(b => b.date === dateVal && b.equipmentId === eqId && b.timeSlot === timeRange);
+
+                    if (!isBooked) {
+                        slotsHtml += `<option value="${timeRange}">${timeRange} น. (${room.name})</option>`;
+                    }
+
+                    currentMins = nextMins;
+                }
+            });
+
+            slotSelect.innerHTML = slotsHtml;
         }
 
         function submitBooking(e) {
@@ -673,22 +733,20 @@
             const student1 = `${currentUser.code} - ${currentUser.name}`;
             const student2 = document.getElementById('bookStudent2').value;
             const equipmentId = document.getElementById('bookEquipmentSelect').value;
+            const timeSlot = document.getElementById('bookTimeSlot').value;
 
             if (!student2) return alert('กรุณาเลือกคู่ซ้อมปฏิบัติ');
             if (!equipmentId) return alert('กรุณาเลือกอุปกรณ์ซ้อม');
+            if (!timeSlot) return alert('กรุณาเลือกรอบเวลาซ้อม');
 
             const eq = equipmentData.find(e => e.id === equipmentId);
             const newBooking = {
                 date,
-                roomName: "ห้องปฏิบัติการหลัก",
                 student1,
                 student2,
                 equipmentId,
                 equipmentName: eq ? eq.name : 'อุปกรณ์',
-                duration: eq ? parseInt(eq.duration) : 30,
-                status: 'queued',
-                startTime: null,
-                remainingSeconds: eq ? parseInt(eq.duration) * 60 : 1800,
+                timeSlot,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
@@ -703,35 +761,15 @@
             const filterDate = document.getElementById('allBookingsFilterDate').value;
             const filteredBookings = bookingsData.filter(b => b.date === filterDate);
 
-            const activePairsBox = document.getElementById('activePairsGrid');
-            const activeBookings = filteredBookings.filter(b => b.status === 'in-use');
-
-            activePairsBox.innerHTML = activeBookings.length > 0 ? activeBookings.map(b => {
-                const mins = Math.floor(b.remainingSeconds / 60);
-                const secs = b.remainingSeconds % 60;
-                return `
-                    <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-4 rounded-2xl shadow-md border border-indigo-800 space-y-3">
-                        <div class="flex justify-between items-start"><span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full">กำลังซ้อม</span></div>
-                        <div><div class="font-bold text-sm text-indigo-100">${b.equipmentName}</div><div class="text-xs text-indigo-200/80 mt-1">1) ${b.student1}<br>2) ${b.student2}</div></div>
-                        <div class="pt-2 border-t border-indigo-800/60 flex justify-between items-center"><span class="text-[11px]">คงเหลือ:</span><span class="text-base font-extrabold font-mono text-emerald-400">${mins}:${String(secs).padStart(2, '0')} นาที</span></div>
-                    </div>
-                `;
-            }).join('') : `<div class="col-span-full text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีคู่ซ้อมที่กำลังใช้อุปกรณ์อยู่ในวันที่เลือก</div>`;
-
             const tableBody = document.getElementById('allBookingsTableBody');
-            tableBody.innerHTML = filteredBookings.length > 0 ? filteredBookings.map(b => {
-                let statusBadge = b.status === 'queued' ? '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">รอคิว</span>' : (b.status === 'in-use' ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">กำลังซ้อม</span>' : '<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px]">เสร็จสิ้น</span>');
-                const mins = Math.floor(b.remainingSeconds / 60);
-                const secs = b.remainingSeconds % 60;
-                return `
-                    <tr class="hover:bg-slate-50 border-b border-slate-100">
-                        <td class="p-3 font-semibold text-slate-800">${b.equipmentName}</td>
-                        <td class="p-3 text-slate-600"><div>${b.student1}</div><div>${b.student2}</div></td>
-                        <td class="p-3">${statusBadge}</td>
-                        <td class="p-3 text-right font-mono font-bold ${b.status === 'in-use' ? 'text-emerald-600' : 'text-slate-600'}">${b.status === 'in-use' ? `${mins}:${String(secs).padStart(2, '0')}` : `${b.duration} นาที`}</td>
-                    </tr>
-                `;
-            }).join('') : `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">ไม่มีรายการจองซ้อมประจำวันนี้</td></tr>`;
+            tableBody.innerHTML = filteredBookings.length > 0 ? filteredBookings.map(b => `
+                <tr class="hover:bg-slate-50 border-b border-slate-100">
+                    <td class="p-3 font-mono font-bold text-indigo-600">${b.timeSlot} น.</td>
+                    <td class="p-3 font-semibold text-slate-800">${b.equipmentName}</td>
+                    <td class="p-3 text-slate-600"><div>1) ${b.student1}</div><div>2) ${b.student2}</div></td>
+                    <td class="p-3 text-right"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">จองแล้ว</span></td>
+                </tr>
+            `).join('') : `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">ไม่มีรายการจองซ้อมประจำวันนี้</td></tr>`;
         }
 
         function renderMyBookingsView() {
@@ -740,41 +778,20 @@
             const myUserTag = `${currentUser.code}`;
             const myBookings = bookingsData.filter(b => b.student1.includes(myUserTag) || b.student2.includes(myUserTag));
 
-            myBox.innerHTML = myBookings.length > 0 ? myBookings.map(b => {
-                const mins = Math.floor(b.remainingSeconds / 60);
-                const secs = b.remainingSeconds % 60;
-                return `
-                    <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex justify-between items-center">
-                        <div>
-                            <div class="font-bold text-sm text-slate-800">${b.equipmentName}</div>
-                            <div class="text-xs text-slate-500">วันที่: ${b.date} | คู่ซ้อม: ${b.student1} & ${b.student2}</div>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="text-right"><div class="text-lg font-bold font-mono text-indigo-600">${mins}:${String(secs).padStart(2, '0')}</div></div>
-                            ${b.status === 'queued' ? `<button onclick="startBookingTimer('${b.id}')" class="bg-emerald-600 text-white font-bold text-xs px-3 py-2 rounded-xl">เริ่มใช้งาน</button>` : ''}
-                            <button onclick="cancelBooking('${b.id}')" class="text-slate-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash"></i></button>
-                        </div>
+            myBox.innerHTML = myBookings.length > 0 ? myBookings.map(b => `
+                <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-sm text-slate-800">${b.equipmentName}</div>
+                        <div class="text-xs text-indigo-600 font-semibold mt-0.5">รอบเวลา: ${b.timeSlot} น. (วันที่ ${b.date})</div>
+                        <div class="text-xs text-slate-500 mt-1">คู่ซ้อม: ${b.student1} & ${b.student2}</div>
                     </div>
-                `;
-            }).join('') : `<div class="text-center py-8 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">คุณยังไม่มีรายการจองซ้อมในระบบ</div>`;
-        }
-
-        function startBookingTimer(id) {
-            db.collection("jongsob_bookings").doc(id).update({ status: 'in-use', startTime: new Date().toISOString() });
+                    <button onclick="cancelBooking('${b.id}')" class="text-slate-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash text-base"></i></button>
+                </div>
+            `).join('') : `<div class="text-center py-8 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">คุณยังไม่มีรายการจองซ้อมในระบบ</div>`;
         }
 
         function cancelBooking(id) {
             if (confirm('ยกเลิกการจองนี้?')) db.collection("jongsob_bookings").doc(id).delete();
-        }
-
-        function tickTimers() {
-            bookingsData.forEach(b => {
-                if (b.status === 'in-use' && b.remainingSeconds > 0) {
-                    b.remainingSeconds -= 1;
-                    if (b.remainingSeconds <= 0) b.status = 'ended';
-                    db.collection("jongsob_bookings").doc(b.id).update({ remainingSeconds: b.remainingSeconds, status: b.status });
-                }
-            });
         }
 
         function renderAdminView() {
@@ -816,7 +833,7 @@
                 duration: document.getElementById('modalEquipmentDuration').value
             }).then(() => { closeEquipmentModal(); updateAllViews(); });
         }
-        function deleteEquipment(id) { db.collection("jongsob_equipment").doc(id).delete(); }
+        function deleteEquipment(id) { db.collection("jongsob_equipment").doc(id].delete(); }
     </script>
 </body>
 </html>
