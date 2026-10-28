@@ -8,13 +8,12 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase App & Firestore SDKs (Compat Version) -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; }
-        .calendar-day-active { background-color: #2563eb; color: white; font-weight: bold; }
         .calendar-has-booking::after { content: ''; display: block; width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; margin: 2px auto 0; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -38,10 +37,9 @@
             
             <div id="userInfoHeader" class="hidden flex items-center gap-3 bg-indigo-950/60 px-3.5 py-1.5 rounded-full border border-indigo-700/50">
                 <div class="text-right">
-                    <div id="currentUserCode" class="text-xs font-mono text-indigo-300">6810001</div>
-                    <div id="currentUserName" class="text-sm font-semibold truncate max-w-[140px]">กชพร คชวงษ์</div>
+                    <div id="currentUserNameDisplay" class="text-sm font-semibold truncate max-w-[200px]">รหัส - ชื่อ</div>
                 </div>
-                <button onclick="logout()" class="text-indigo-300 hover:text-red-400 p-1.5 rounded-full hover:bg-indigo-900 transition" title="สลับผู้ใช้ / ออกจากระบบ">
+                <button onclick="logout()" class="text-indigo-300 hover:text-red-400 p-1.5 rounded-full hover:bg-indigo-900 transition" title="ออกจากระบบ">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
@@ -69,7 +67,7 @@
         </nav>
     </header>
 
-    <!-- MANDATORY LOGIN MODAL OVERLAY -->
+    <!-- MANDATORY LOGIN MODAL -->
     <div id="loginModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
             <div class="bg-gradient-to-r from-indigo-900 to-indigo-700 p-6 text-white text-center">
@@ -87,13 +85,10 @@
                         <input type="text" id="loginSearchInput" oninput="handleLoginSearch()" placeholder="พิมพ์รหัส 6810... หรือชื่อ..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm">
                         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400"></i>
                     </div>
-                    
-                    <!-- Search Results Box -->
-                    <div id="loginSearchResults" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto z-20 custom-scrollbar">
-                    </div>
+                    <!-- Dropdown Results Box -->
+                    <div id="loginSearchResults" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto z-50 custom-scrollbar"></div>
                 </div>
 
-                <!-- Selected Student Display -->
                 <div id="selectedStudentCard" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex items-center justify-between">
                     <div>
                         <div id="selectedStudentCode" class="text-xs font-mono font-bold text-indigo-600">6810001</div>
@@ -102,40 +97,37 @@
                     <i class="fa-solid fa-circle-check text-indigo-600 text-lg"></i>
                 </div>
 
-                <button id="btnLoginConfirm" onclick="confirmLogin()" disabled class="w-full bg-slate-300 text-slate-500 py-3 rounded-xl font-bold hover:bg-indigo-600 hover:text-white transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">
+                <button id="btnLoginConfirm" onclick="confirmLogin()" disabled class="w-full bg-slate-300 text-slate-500 py-3 rounded-xl font-bold transition disabled:cursor-not-allowed">
                     เข้าสู่ระบบ
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- MAIN APP CONTENT CONTAINER -->
+    <!-- MAIN APP CONTAINER -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
-        <!-- TAB 1: DASHBOARD (หน้าหลัก) -->
+        <!-- TAB 1: DASHBOARD -->
         <section id="sec-dashboard" class="space-y-6">
-            <!-- Header Status Card -->
             <div class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <div class="flex items-center gap-2 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-1">
                         <i class="fa-regular fa-clock"></i> เวลาปัจจุบัน
                     </div>
                     <div id="liveClock" class="text-3xl font-extrabold font-mono tracking-tight">00:00:00</div>
-                    <div id="liveDate" class="text-sm text-indigo-200 mt-0.5">วันพฤหัสบดีที่ 22 ตุลาคม 2569</div>
+                    <div id="liveDate" class="text-sm text-indigo-200 mt-0.5">กำลังโหลดวันที่...</div>
                 </div>
                 
                 <div class="bg-white/10 backdrop-blur-md rounded-xl p-3.5 border border-white/15 max-w-md w-full md:w-auto">
                     <div class="text-xs text-indigo-200 font-medium mb-1">วันนี้เปิดซ้อมห้องปฏิบัติการ:</div>
                     <div id="dashboardRoomBadges" class="flex flex-wrap gap-1.5">
-                        <span class="text-xs bg-slate-700/50 text-slate-300 px-2.5 py-1 rounded-lg">ยังไม่มีข้อมูลห้อง</span>
+                        <span class="text-xs bg-slate-700/50 text-slate-300 px-2.5 py-1 rounded-lg">กำลังโหลด...</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Calendar & Equipment Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                <!-- Left Column: Compact Calendar (4 cols) -->
+                <!-- Calendar (5 cols) -->
                 <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div class="flex justify-between items-center">
                         <h2 class="font-bold text-slate-800 flex items-center gap-2 text-base">
@@ -147,8 +139,6 @@
                             <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600"><i class="fa-solid fa-chevron-right text-xs"></i></button>
                         </div>
                     </div>
-
-                    <!-- Compact Calendar Grid -->
                     <div class="grid grid-cols-7 gap-1 text-center text-xs">
                         <div class="font-bold text-red-500 py-1">อา</div>
                         <div class="font-bold text-slate-600 py-1">จ</div>
@@ -158,51 +148,29 @@
                         <div class="font-bold text-slate-600 py-1">ศ</div>
                         <div class="font-bold text-blue-500 py-1">ส</div>
                     </div>
-                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-xs">
-                        <!-- Calendar Days Rendered Here -->
-                    </div>
-
-                    <div class="flex items-center gap-4 text-[11px] text-slate-500 pt-2 border-t border-slate-100">
-                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> มีการเปิดซ้อม/จอง</span>
-                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> วันที่เลือก</span>
-                    </div>
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-xs"></div>
                 </div>
 
-                <!-- Right Column: Room & Equipment Status (7 cols) -->
+                <!-- Rooms & Equipment Status (7 cols) -->
                 <div class="lg:col-span-7 space-y-6">
-                    
-                    <!-- Today Rooms List -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                <i class="fa-solid fa-door-open text-indigo-600"></i> ห้องปฏิบัติการที่เปิดซ้อมประจำวัน <span id="selectedDateLabel" class="text-indigo-600">22 ต.ค. 2569</span>
-                            </h3>
-                        </div>
-                        <div id="dashboardRoomsList" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div class="col-span-2 text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                ยังไม่มีห้องปฏิบัติการเปิดให้บริการในวันที่เลือก
-                            </div>
-                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-door-open text-indigo-600"></i> ห้องปฏิบัติการที่เปิดซ้อมประจำวัน <span id="selectedDateLabel" class="text-indigo-600"></span>
+                        </h3>
+                        <div id="dashboardRoomsList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     </div>
 
-                    <!-- Today Equipment Availability Summary -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-toolbox text-indigo-600"></i> สถานะอุปกรณ์ซ้อมปฏิบัติงานประจำวัน
                         </h3>
-                        <div id="dashboardEquipmentList" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div class="col-span-2 text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                ยังไม่มีรายการอุปกรณ์ซ้อมในระบบ (เพิ่มได้ที่หน้าจัดการระบบ Admin)
-                            </div>
-                        </div>
+                        <div id="dashboardEquipmentList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     </div>
-
                 </div>
-
             </div>
         </section>
 
-        <!-- TAB 2: BOOKING FORM (หน้าการจอง) -->
+        <!-- TAB 2: BOOKING FORM -->
         <section id="sec-booking" class="hidden max-w-2xl mx-auto space-y-6">
             <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-md space-y-6">
                 <div class="border-b border-slate-100 pb-4">
@@ -213,27 +181,16 @@
                 </div>
 
                 <form onsubmit="submitBooking(event)" class="space-y-4">
-                    <!-- Date Picker -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">วันที่ต้องการเข้าซ้อม</label>
-                        <input type="date" id="bookDate" required onchange="onBookingDateChange()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <input type="date" id="bookDate" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
                     </div>
 
-                    <!-- Room Picker -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">เลือกห้องปฏิบัติการ</label>
-                        <select id="bookRoomSelect" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
-                            <option value="">-- กรุณาเลือกวันที่ก่อน --</option>
-                        </select>
-                    </div>
-
-                    <!-- Student 1 (Locked to Logged In User) -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">ผู้จองคนที่ 1 (ตัวคุณ - ล็อกออโต้)</label>
                         <input type="text" id="bookStudent1" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-300 text-slate-600 font-semibold rounded-xl text-sm cursor-not-allowed">
                     </div>
 
-                    <!-- Student 2 (Dropdown Selection from 80 Students) -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">ผู้จองคนที่ 2 (คู่ซ้อมปฏิบัติ)</label>
                         <select id="bookStudent2" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
@@ -241,7 +198,6 @@
                         </select>
                     </div>
 
-                    <!-- Equipment Picker -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">เลือกอุปกรณ์ซ้อมปฏิบัติ</label>
                         <select id="bookEquipmentSelect" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
@@ -256,7 +212,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: ALL BOOKINGS OVERVIEW (หน้าการจองทั้งหมด) -->
+        <!-- TAB 3: ALL BOOKINGS -->
         <section id="sec-all-bookings" class="hidden space-y-6">
             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
@@ -264,22 +220,17 @@
                         <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-users-viewfinder text-indigo-600"></i> ตารางการจองและคู่ที่กำลังซ้อมทั้งหมด
                         </h2>
-                        <p class="text-xs text-slate-500">แสดงข้อมูลว่าคู่ไหนกำลังใช้อุปกรณ์อะไรอยู่ เหลือเวลากี่นาที และคิวถัดไป</p>
                     </div>
                     <input type="date" id="allBookingsFilterDate" onchange="renderAllBookingsView()" class="px-3.5 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium">
                 </div>
 
-                <!-- Active In-Use Pairs Cards -->
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-3 flex items-center gap-1.5">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> คู่ที่กำลังใช้อุปกรณ์ซ้อมอยู่ในขณะนี้
                     </h3>
-                    <div id="activePairsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <!-- Active Pairs Cards Here -->
-                    </div>
+                    <div id="activePairsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </div>
 
-                <!-- All Bookings List Table -->
                 <div class="pt-4">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">คิวการจองทั้งหมดประจำวัน</h3>
                     <div class="overflow-x-auto rounded-xl border border-slate-200">
@@ -288,83 +239,57 @@
                                 <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
                                     <th class="p-3">อุปกรณ์</th>
                                     <th class="p-3">คู่ซ้อมปฏิบัติ</th>
-                                    <th class="p-3">ห้อง</th>
                                     <th class="p-3">สถานะคิว</th>
                                     <th class="p-3 text-right">เวลาซ้อม / คงเหลือ</th>
                                 </tr>
                             </thead>
-                            <tbody id="allBookingsTableBody" class="divide-y divide-slate-100">
-                                <!-- Table rows -->
-                            </tbody>
+                            <tbody id="allBookingsTableBody" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 4: MY BOOKINGS / QUEUE (คิวของฉัน) -->
+        <!-- TAB 4: MY BOOKINGS -->
         <section id="sec-my-bookings" class="hidden space-y-6">
             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <div class="border-b border-slate-100 pb-4">
                     <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                         <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> รายการจองซ้อมของฉันและคู่ซ้อม
                     </h2>
-                    <p class="text-xs text-slate-500">ซิงค์ข้อมูลกับรหัสนักศึกษาของคุณและคู่ซ้อมที่จองร่วมกัน สามารถกดเริ่มเวลาใช้งานเมื่อได้รับอุปกรณ์</p>
                 </div>
-
-                <div id="myBookingsList" class="space-y-3">
-                    <!-- My Booking Cards Rendered Here -->
-                </div>
+                <div id="myBookingsList" class="space-y-3"></div>
             </div>
         </section>
 
-        <!-- TAB 5: ADMIN MANAGEMENT (จัดการระบบ) -->
+        <!-- TAB 5: ADMIN MANAGEMENT -->
         <section id="sec-admin" class="hidden space-y-6">
             <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-800 flex items-center gap-3">
                 <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg"></i>
-                <div>
-                    <span class="font-bold">โหมดผู้ดูแลระบบ (เปิดสิทธิ์ให้ทุกคน):</span> สมาชิกสามารถเพิ่ม แก้ไข หรือลบข้อมูลห้องและอุปกรณ์ได้ทันที Real-time ผ่าน Firebase
-                </div>
+                <div><span class="font-bold">โหมดผู้ดูแลระบบ:</span> เพิ่ม แก้ไข หรือลบข้อมูลห้องและอุปกรณ์ได้ทันที Real-time</div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Manage Rooms Section -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-door-closed text-indigo-600"></i> จัดการเปิดห้องปฏิบัติการ
-                        </h3>
-                        <button type="button" onclick="openRoomModal()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition">
-                            + เพิ่มห้องเปิดซ้อม
-                        </button>
+                        <h3 class="font-bold text-slate-800 text-sm">จัดการเปิดห้องปฏิบัติการ</h3>
+                        <button type="button" onclick="openRoomModal()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition">+ เพิ่มห้องเปิดซ้อม</button>
                     </div>
-
-                    <div id="adminRoomsList" class="space-y-2">
-                        <!-- Admin Rooms Rendered Here -->
-                    </div>
+                    <div id="adminRoomsList" class="space-y-2"></div>
                 </div>
 
-                <!-- Manage Equipment Section -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-boxes-packing text-indigo-600"></i> จัดการรายการอุปกรณ์ซ้อม
-                        </h3>
-                        <button type="button" onclick="openEquipmentModal()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition">
-                            + เพิ่มอุปกรณ์
-                        </button>
+                        <h3 class="font-bold text-slate-800 text-sm">จัดการรายการอุปกรณ์ซ้อม</h3>
+                        <button type="button" onclick="openEquipmentModal()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition">+ เพิ่มอุปกรณ์</button>
                     </div>
-
-                    <div id="adminEquipmentList" class="space-y-2">
-                        <!-- Admin Equipment Rendered Here -->
-                    </div>
+                    <div id="adminEquipmentList" class="space-y-2"></div>
                 </div>
             </div>
         </section>
-
     </main>
 
-    <!-- MODAL: ADD/EDIT ROOM -->
+    <!-- MODAL: ROOM -->
     <div id="roomModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <h3 id="roomModalTitle" class="font-bold text-slate-800 text-base">เพิ่มห้องปฏิบัติการ</h3>
@@ -372,20 +297,20 @@
                 <input type="hidden" id="modalRoomId">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">ชื่อห้องปฏิบัติการ</label>
-                    <input type="text" id="modalRoomName" required placeholder="เช่น ห้องปฏิบัติการทักษะพยาบาล 501" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="modalRoomName" required placeholder="เช่น ห้องปฏิบัติการ 501" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">วันที่เปิดซ้อม</label>
-                    <input type="date" id="modalRoomDate" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="date" id="modalRoomDate" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">เวลาเริ่มเปิด</label>
-                        <input type="time" id="modalRoomStartTime" required value="09:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">เวลาเริ่ม</label>
+                        <input type="time" id="modalRoomStartTime" required value="09:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">เวลาปิด</label>
-                        <input type="time" id="modalRoomEndTime" required value="16:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="time" id="modalRoomEndTime" required value="16:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
@@ -396,7 +321,7 @@
         </div>
     </div>
 
-    <!-- MODAL: ADD/EDIT EQUIPMENT -->
+    <!-- MODAL: EQUIPMENT -->
     <div id="equipmentModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <h3 id="equipmentModalTitle" class="font-bold text-slate-800 text-base">เพิ่มอุปกรณ์ซ้อม</h3>
@@ -404,16 +329,16 @@
                 <input type="hidden" id="modalEquipmentId">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">ชื่ออุปกรณ์</label>
-                    <input type="text" id="modalEquipmentName" required placeholder="เช่น ชุดฝึกฉีดยาเข้ากล้ามเนื้อ" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="modalEquipmentName" required placeholder="เช่น ชุดฝึกฉีดยา" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">จำนวนที่มี (ชุด/เครื่อง)</label>
-                        <input type="number" id="modalEquipmentQty" required min="1" value="2" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">จำนวนที่มี (ชุด)</label>
+                        <input type="number" id="modalEquipmentQty" required min="1" value="2" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">เวลาซ้อมต่อรอบ (นาที)</label>
-                        <input type="number" id="modalEquipmentDuration" required min="5" value="30" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">เวลาซ้อม (นาที)</label>
+                        <input type="number" id="modalEquipmentDuration" required min="5" value="30" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
@@ -424,9 +349,8 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT APPLICATION LOGIC CONNECTED TO FIREBASE -->
+    <!-- JAVASCRIPT -->
     <script>
-        // 1. FIREBASE CONFIGURATION (jongsobgun)
         const firebaseConfig = {
             apiKey: "AIzaSyCr1Y65fm-rYh71AaZR6NpF4INvB8Vv1N8",
             authDomain: "jongsobgun.firebaseapp.com",
@@ -437,112 +361,66 @@
             measurementId: "G-M6K16RD8E8"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 2. EXACT STUDENT LIST (80 STUDENTS)
         const STUDENTS = [
-            { code: '6810001', name: 'กชพร คชวงษ์' },
-            { code: '6810002', name: 'กัญภัท ภัทร์ธาดาโชค' },
-            { code: '6810003', name: 'กัณฐกะ ปัทมศรีรัตนา' },
-            { code: '6810004', name: 'คุณพงศ์ กังวาลสกุล' },
-            { code: '6810005', name: 'ชนิภา สุวรรณทา' },
-            { code: '6810006', name: 'ณัฐกฤตา ห้วยเรไร' },
-            { code: '6810008', name: 'ธนสร วงศ์รัศมีธรรม' },
-            { code: '6810009', name: 'นพณัฐ หลวงพล' },
-            { code: '6810010', name: 'นิชาภัทร เนตรสุวรรณ' },
-            { code: '6810011', name: 'นิธิพงษ์ มาทิพย์' },
-            { code: '6810012', name: 'ปภัชญา ศิรกรวิไล' },
-            { code: '6810014', name: 'พิมพ์นารา มูลสระดู่' },
-            { code: '6810015', name: 'วรชญา คู่เรืองตระกูล' },
-            { code: '6810016', name: 'ศิรภัสสร ธิรักษพันธ์' },
-            { code: '6810017', name: 'ศุภกฤต ศรีเมฆ' },
-            { code: '6810018', name: 'สุทิสสา สุขแสวง' },
-            { code: '6810019', name: 'สุรยุทธ์ พรหมชูแก้ว' },
-            { code: '6810020', name: 'อิทธิกร กาญจนมุสิก' },
-            { code: '6810021', name: 'กวีกร กสิวิทย์' },
-            { code: '6810023', name: 'ชญานิศา เทียนแก้ว' },
-            { code: '6810024', name: 'ชนัญชิดา พุทธประเสริฐ' },
-            { code: '6810025', name: 'ชัญทร กาญจนกิจ' },
-            { code: '6810026', name: 'ญาณิศา พิกุลทอง' },
-            { code: '6810027', name: 'ญาณิศา ลาภาอุตม์' },
-            { code: '6810028', name: 'ณัฏฐนันท์ ทรัพย์คงดี' },
-            { code: '6810029', name: 'ดลฤทัย นันทจันทร์' },
-            { code: '6810030', name: 'ธนภร สิงห์ภู่' },
-            { code: '6810031', name: 'ธนารักษ์ จตุรงค์พลาธิปัต' },
-            { code: '6810032', name: 'ธวัลรัตน์ สุภาษี' },
-            { code: '6810033', name: 'ธิติกาญจน์ ปานทุ่ง' },
-            { code: '6810034', name: 'ปฏิญญา สุทธราพงษ์' },
-            { code: '6810035', name: 'ปณิธิ สุคันธี' },
-            { code: '6810036', name: 'ปภังกร ประดิษฐ์วรกุล' },
-            { code: '6810038', name: 'ปานตะวัน ดวงชิน' },
-            { code: '6810039', name: 'พงค์จักรภัทรติ์ ปานต๊ะรังษี' },
-            { code: '6810040', name: 'พัทธนันท์ เรืองสิริวุฒิ' },
-            { code: '6810041', name: 'พิชชาพร เจริญศิริ' },
-            { code: '6810042', name: 'ภัคจิรา ปิยะพันธ์' },
-            { code: '6810043', name: 'ภาสวิชญ์ ชะเอมไทย' },
-            { code: '6810044', name: 'ภูริทัต โชติทอง' },
-            { code: '6810045', name: 'ระพีพัชร สายขุน' },
-            { code: '6810047', name: 'ลลิล ผลศิริ' },
-            { code: '6810048', name: 'วณิชญาณ์ กวางเฉลียว' },
-            { code: '6810049', name: 'วรธนา กันตอนันตพร' },
-            { code: '6810050', name: 'หาญชัย สิงหกมล' },
-            { code: '6810051', name: 'อทิติยา ยาตรา' },
-            { code: '6810053', name: 'ตระการ ดอกบัว' },
-            { code: '6810056', name: 'กฤตพร วงค์สะทำ' },
-            { code: '6810057', name: 'กฤตยชญ์ ปรัศนียาภรณ์' },
-            { code: '6810058', name: 'กัลยา อินทร์ติยะ' },
-            { code: '6810059', name: 'ชญาดา ปิติเจริญพร' },
-            { code: '6810060', name: 'ณภัทร สิทธิพันธุรักษ์' },
-            { code: '6810062', name: 'ณัฐชนน ศรีอุดร' },
-            { code: '6810063', name: 'ณัฐณิชา หล้าประพันธ์กุล' },
-            { code: '6810064', name: 'ติณณภพ ณ น่าน' },
-            { code: '6810065', name: 'ธนภูมิ บัวทิพย์' },
-            { code: '6810066', name: 'ธัญมน จงฤกษ์งาม' },
-            { code: '6810067', name: 'ธันยพัฒน์ เกรียงพิทักษ์' },
-            { code: '6810068', name: 'บุณญาพร ศิริศิลป์' },
-            { code: '6810069', name: 'บุณยาภัค ลอมาเละ' },
-            { code: '6810070', name: 'เบญญาภา ชูทอง' },
-            { code: '6810071', name: 'ปูริดา อุดมวงศ์' },
-            { code: '6810072', name: 'พรภาณี มัธยมพงศ์' },
-            { code: '6810073', name: 'พศิน สายวงศ์' },
-            { code: '6810074', name: 'พองาม พงศทันธรรม' },
-            { code: '6810075', name: 'พิมพ์มาดา เสถียรพันธฤทธิ์' },
-            { code: '6810076', name: 'ภาสุพล ยอดสุข' },
-            { code: '6810077', name: 'ภูมิชรินทร์ สารสินพิทักษ์' },
-            { code: '6810078', name: 'วัลลภา ยกเจริญ' },
-            { code: '6810079', name: 'วีณารัตน์ บุญสิริฉาย' },
-            { code: '6810080', name: 'วุฒินันต์ เลิศศิริวรกุล' },
-            { code: '6810081', name: 'ศรัญญูย์ หลังพันธุ์' },
-            { code: '6810082', name: 'ศุภณัฐ ปัญจมาสกุล' },
-            { code: '6810083', name: 'ศุภาพิชญ์ รอดภัย' },
-            { code: '6810084', name: 'ศุภิสรา ปิ่นชัยมูล' },
-            { code: '6810085', name: 'สมัชญ์ ตีระพิพัฒนกุล' },
-            { code: '6810086', name: 'สุวรินทร์ คุ้มครองเลิศสิน' },
-            { code: '6810087', name: 'อภิชญา ศรีชัย' },
-            { code: '6810088', name: 'อันดา มณเฑียรรัตน์' },
-            { code: '6810089', name: 'ฮาซีซะห์ มะแซ' }
+            { code: '6810001', name: 'กชพร คชวงษ์' }, { code: '6810002', name: 'กัญภัท ภัทร์ธาดาโชค' },
+            { code: '6810003', name: 'กัณฐกะ ปัทมศรีรัตนา' }, { code: '6810004', name: 'คุณพงศ์ กังวาลสกุล' },
+            { code: '6810005', name: 'ชนิภา สุวรรณทา' }, { code: '6810006', name: 'ณัฐกฤตา ห้วยเรไร' },
+            { code: '6810008', name: 'ธนสร วงศ์รัศมีธรรม' }, { code: '6810009', name: 'นพณัฐ หลวงพล' },
+            { code: '6810010', name: 'นิชาภัทร เนตรสุวรรณ' }, { code: '6810011', name: 'นิธิพงษ์ มาทิพย์' },
+            { code: '6810012', name: 'ปภัชญา ศิรกรวิไล' }, { code: '6810014', name: 'พิมพ์นารา มูลสระดู่' },
+            { code: '6810015', name: 'วรชญา คู่เรืองตระกูล' }, { code: '6810016', name: 'ศิรภัสสร ธิรักษพันธ์' },
+            { code: '6810017', name: 'ศุภกฤต ศรีเมฆ' }, { code: '6810018', name: 'สุทิสสา สุขแสวง' },
+            { code: '6810019', name: 'สุรยุทธ์ พรหมชูแก้ว' }, { code: '6810020', name: 'อิทธิกร กาญจนมุสิก' },
+            { code: '6810021', name: 'กวีกร กสิวิทย์' }, { code: '6810023', name: 'ชญานิศา เทียนแก้ว' },
+            { code: '6810024', name: 'ชนัญชิดา พุทธประเสริฐ' }, { code: '6810025', name: 'ชัญทร กาญจนกิจ' },
+            { code: '6810026', name: 'ญาณิศา พิกุลทอง' }, { code: '6810027', name: 'ญาณิศา ลาภาอุตม์' },
+            { code: '6810028', name: 'ณัฏฐนันท์ ทรัพย์คงดี' }, { code: '6810029', name: 'ดลฤทัย นันทจันทร์' },
+            { code: '6810030', name: 'ธนภร สิงห์ภู่' }, { code: '6810031', name: 'ธนารักษ์ จตุรงค์พลาธิปัต' },
+            { code: '6810032', name: 'ธวัลรัตน์ สุภาษี' }, { code: '6810033', name: 'ธิติกาญจน์ ปานทุ่ง' },
+            { code: '6810034', name: 'ปฏิญญา สุทธราพงษ์' }, { code: '6810035', name: 'ปณิธิ สุคันธี' },
+            { code: '6810036', name: 'ปภังกร ประดิษฐ์วรกุล' }, { code: '6810038', name: 'ปานตะวัน ดวงชิน' },
+            { code: '6810039', name: 'พงค์จักรภัทรติ์ ปานต๊ะรังษี' }, { code: '6810040', name: 'พัทธนันท์ เรืองสิริวุฒิ' },
+            { code: '6810041', name: 'พิชชาพร เจริญศิริ' }, { code: '6810042', name: 'ภัคจิรา ปิยะพันธ์' },
+            { code: '6810043', name: 'ภาสวิชญ์ ชะเอมไทย' }, { code: '6810044', name: 'ภูริทัต โชติทอง' },
+            { code: '6810045', name: 'ระพีพัชร สายขุน' }, { code: '6810047', name: 'ลลิล ผลศิริ' },
+            { code: '6810048', name: 'วณิชญาณ์ กวางเฉลียว' }, { code: '6810049', name: 'วรธนา กันตอนันตพร' },
+            { code: '6810050', name: 'หาญชัย สิงหกมล' }, { code: '6810051', name: 'อทิติยา ยาตรา' },
+            { code: '6810053', name: 'ตระการ ดอกบัว' }, { code: '6810056', name: 'กฤตพร วงค์สะทำ' },
+            { code: '6810057', name: 'กฤตยชญ์ ปรัศนียาภรณ์' }, { code: '6810058', name: 'กัลยา อินทร์ติยะ' },
+            { code: '6810059', name: 'ชญาดา ปิติเจริญพร' }, { code: '6810060', name: 'ณภัทร สิทธิพันธุรักษ์' },
+            { code: '6810062', name: 'ณัฐชนน ศรีอุดร' }, { code: '6810063', name: 'ณัฐณิชา หล้าประพันธ์กุล' },
+            { code: '6810064', name: 'ติณณภพ ณ น่าน' }, { code: '6810065', name: 'ธนภูมิ บัวทิพย์' },
+            { code: '6810066', name: 'ธัญมน จงฤกษ์งาม' }, { code: '6810067', name: 'ธันยพัฒน์ เกรียงพิทักษ์' },
+            { code: '6810068', name: 'บุณญาพร ศิริศิลป์' }, { code: '6810069', name: 'บุณยาภัค ลอมาเละ' },
+            { code: '6810070', name: 'เบญญาภา ชูทอง' }, { code: '6810071', name: 'ปูริดา อุดมวงศ์' },
+            { code: '6810072', name: 'พรภาณี มัธยมพงศ์' }, { code: '6810073', name: 'พศิน สายวงศ์' },
+            { code: '6810074', name: 'พองาม พงศทันธรรม' }, { code: '6810075', name: 'พิมพ์มาดา เสถียรพันธฤทธิ์' },
+            { code: '6810076', name: 'ภาสุพล ยอดสุข' }, { code: '6810077', name: 'ภูมิชรินทร์ สารสินพิทักษ์' },
+            { code: '6810078', name: 'วัลลภา ยกเจริญ' }, { code: '6810079', name: 'วีณารัตน์ บุญสิริฉาย' },
+            { code: '6810080', name: 'วุฒินันต์ เลิศศิริวรกุล' }, { code: '6810081', name: 'ศรัญญูย์ หลังพันธุ์' },
+            { code: '6810082', name: 'ศุภณัฐ ปัญจมาสกุล' }, { code: '6810083', name: 'ศุภาพิชญ์ รอดภัย' },
+            { code: '6810084', name: 'ศุภาพิชญ์ รอดภัย' }, { code: '6810085', name: 'สมัชญ์ ตีระพิพัฒนกุล' },
+            { code: '6810086', name: 'สุวรินทร์ คุ้มครองเลิศสิน' }, { code: '6810087', name: 'อภิชญา ศรีชัย' },
+            { code: '6810088', name: 'อันดา มณเฑียรรัตน์' }, { code: '6810089', name: 'ฮาซีซะห์ มะแซ' }
         ];
 
-        // 3. GLOBAL STATE
         let currentUser = null;
         let selectedLoginStudent = null;
         let selectedDateStr = new Date().toISOString().split('T')[0];
         let currentCalendarDate = new Date();
 
-        // Data Store (Synced with Firebase)
         let roomsData = [];
         let equipmentData = [];
         let bookingsData = [];
 
-        // 4. INITIALIZATION & FIREBASE REAL-TIME LISTENERS
         window.addEventListener('DOMContentLoaded', () => {
             initLiveClock();
             populateStudentDropdown();
             renderCalendar();
             
-            // Check stored session
             const savedUser = localStorage.getItem('ps_current_user');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
@@ -551,76 +429,63 @@
                 showLoginModal();
             }
 
-            // Set date inputs to today
             document.getElementById('bookDate').value = selectedDateStr;
             document.getElementById('allBookingsFilterDate').value = selectedDateStr;
 
-            // Setup Real-time Listeners from Firestore
             initFirebaseListeners();
             setInterval(tickTimers, 1000);
         });
 
         function initFirebaseListeners() {
-            // Real-time Rooms Listener
             db.collection("jongsob_rooms").onSnapshot((snapshot) => {
                 roomsData = [];
-                snapshot.forEach(doc => {
-                    roomsData.push({ id: doc.id, ...doc.data() });
-                });
+                snapshot.forEach(doc => roomsData.push({ id: doc.id, ...doc.data() }));
                 updateAllViews();
             });
 
-            // Real-time Equipment Listener
             db.collection("jongsob_equipment").onSnapshot((snapshot) => {
                 equipmentData = [];
-                snapshot.forEach(doc => {
-                    equipmentData.push({ id: doc.id, ...doc.data() });
-                });
+                snapshot.forEach(doc => equipmentData.push({ id: doc.id, ...doc.data() }));
                 updateAllViews();
             });
 
-            // Real-time Bookings Listener
             db.collection("jongsob_bookings").onSnapshot((snapshot) => {
                 bookingsData = [];
-                snapshot.forEach(doc => {
-                    bookingsData.push({ id: doc.id, ...doc.data() });
-                });
+                snapshot.forEach(doc => bookingsData.push({ id: doc.id, ...doc.data() }));
                 updateAllViews();
             });
         }
 
-        // 5. CLOCK FUNCTION
+        // 🕒 ปรับวันที่และเวลาให้เป็น Real-time ปัจจุบัน
         function initLiveClock() {
             const updateClock = () => {
                 const now = new Date();
                 document.getElementById('liveClock').textContent = now.toLocaleTimeString('th-TH');
-                
-                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                document.getElementById('liveDate').textContent = now.toLocaleDateString('th-TH', options);
+                document.getElementById('liveDate').textContent = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             };
             updateClock();
             setInterval(updateClock, 1000);
         }
 
-        // 6. LOGIN / SEARCH LOGIC
         function showLoginModal() {
             document.getElementById('loginModal').classList.remove('hidden');
         }
 
+        // 🔍 แก้ไขระบบค้นหารายชื่อให้แสดงผลดรอปดาวน์ถูกต้อง
         function handleLoginSearch() {
             const query = document.getElementById('loginSearchInput').value.trim().toLowerCase();
             const resultsBox = document.getElementById('loginSearchResults');
             
-            if (!query) {
-                resultsBox.classList.add('hidden');
-                return;
+            if (!query) { 
+                resultsBox.classList.add('hidden'); 
+                return; 
             }
 
             const matches = STUDENTS.filter(s => s.code.toLowerCase().includes(query) || s.name.toLowerCase().includes(query));
             
             if (matches.length > 0) {
                 resultsBox.innerHTML = matches.map(s => `
-                    <div onclick="selectStudentForLogin('${s.code}')" class="p-2.5 hover:bg-indigo-50 border-b border-slate-100 last:border-none cursor-pointer flex items-center justify-between text-xs">
+                    <div onclick="selectStudentForLogin('${s.code}')" class="p-3 hover:bg-indigo-50 border-b border-slate-100 cursor-pointer flex items-center justify-between text-xs">
                         <div>
                             <span class="font-mono font-bold text-indigo-600 mr-2">${s.code}</span>
                             <span class="font-medium text-slate-800">${s.name}</span>
@@ -638,7 +503,6 @@
         function selectStudentForLogin(code) {
             const student = STUDENTS.find(s => s.code === code);
             if (!student) return;
-
             selectedLoginStudent = student;
             document.getElementById('selectedStudentCode').textContent = student.code;
             document.getElementById('selectedStudentName').textContent = student.name;
@@ -660,21 +524,25 @@
             document.getElementById('loginModal').classList.add('hidden');
         }
 
+        // 🚪 ออกจากระบบสมบูรณ์
         function logout() {
             localStorage.removeItem('ps_current_user');
             currentUser = null;
             selectedLoginStudent = null;
-            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('loginSearchInput').value = '';
+            document.getElementById('selectedStudentCard').classList.add('hidden');
+            const btn = document.getElementById('btnLoginConfirm');
+            btn.disabled = true;
+            btn.classList.add('bg-slate-300', 'text-slate-500');
+            btn.classList.remove('bg-indigo-600', 'text-white');
             document.getElementById('userInfoHeader').classList.add('hidden');
             document.getElementById('mainNav').classList.add('hidden');
-            document.getElementById('selectedStudentCard').classList.add('hidden');
-            document.getElementById('loginSearchInput').value = '';
-            document.getElementById('btnLoginConfirm').disabled = true;
+            showLoginModal();
         }
 
         function applyLoggedInUser() {
-            document.getElementById('currentUserCode').textContent = currentUser.code;
-            document.getElementById('currentUserName').textContent = currentUser.name;
+            // 👤 แสดงผลทั้งรหัสและชื่อที่มุมขวาบน
+            document.getElementById('currentUserNameDisplay').textContent = `${currentUser.code} - ${currentUser.name}`;
             document.getElementById('userInfoHeader').classList.remove('hidden');
             document.getElementById('mainNav').classList.remove('hidden');
 
@@ -686,7 +554,6 @@
         function populateStudentDropdown() {
             const select = document.getElementById('bookStudent2');
             select.innerHTML = '<option value="">-- เลือกคู่ซ้อมจากรายชื่อนักศึกษา --</option>';
-            
             STUDENTS.forEach(s => {
                 if (!currentUser || s.code !== currentUser.code) {
                     const opt = document.createElement('option');
@@ -697,10 +564,8 @@
             });
         }
 
-        // 7. TAB SWITCHING
         function switchTab(tabId) {
-            const tabs = ['dashboard', 'booking', 'all-bookings', 'my-bookings', 'admin'];
-            tabs.forEach(t => {
+            ['dashboard', 'booking', 'all-bookings', 'my-bookings', 'admin'].forEach(t => {
                 const sec = document.getElementById(`sec-${t}`);
                 const btn = document.getElementById(`tab-${t}`);
                 if (t === tabId) {
@@ -716,46 +581,29 @@
             updateAllViews();
         }
 
-        // 8. CALENDAR LOGIC WITH BOOKING DOT MARKERS
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
-
             const year = currentCalendarDate.getFullYear();
             const month = currentCalendarDate.getMonth();
-
             const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
             document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year + 543}`;
 
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            for (let i = 0; i < firstDay; i++) {
-                grid.innerHTML += `<div></div>`;
-            }
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div></div>`;
 
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                
                 const hasBooking = bookingsData.some(b => b.date === dayDateStr) || roomsData.some(r => r.date === dayDateStr);
                 const isSelected = dayDateStr === selectedDateStr;
 
                 let classes = "py-2 rounded-lg text-center font-medium cursor-pointer transition relative hover:bg-indigo-50 ";
-                if (isSelected) {
-                    classes += "bg-indigo-600 text-white font-bold ";
-                } else {
-                    classes += "text-slate-700 ";
-                }
+                classes += isSelected ? "bg-indigo-600 text-white font-bold " : "text-slate-700 ";
+                if (hasBooking) classes += "calendar-has-booking ";
 
-                if (hasBooking) {
-                    classes += "calendar-has-booking ";
-                }
-
-                grid.innerHTML += `
-                    <div onclick="selectCalendarDate('${dayDateStr}')" class="${classes}">
-                        ${day}
-                    </div>
-                `;
+                grid.innerHTML += `<div onclick="selectCalendarDate('${dayDateStr}')" class="${classes}">${day}</div>`;
             }
         }
 
@@ -770,7 +618,6 @@
             updateDashboardViews();
         }
 
-        // 9. DATA RENDERING & VIEWS
         function updateAllViews() {
             renderCalendar();
             updateDashboardViews();
@@ -782,39 +629,23 @@
 
         function updateDashboardViews() {
             const d = new Date(selectedDateStr);
-            const dateText = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-            document.getElementById('selectedDateLabel').textContent = dateText;
+            document.getElementById('selectedDateLabel').textContent = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 
             const todayStr = new Date().toISOString().split('T')[0];
             const todayRooms = roomsData.filter(r => r.date === todayStr);
             const badgeBox = document.getElementById('dashboardRoomBadges');
             
-            if (todayRooms.length > 0) {
-                badgeBox.innerHTML = todayRooms.map(r => `
-                    <span class="text-xs bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2.5 py-1 rounded-lg font-bold">
-                        ${r.name} (${r.startTime} - ${r.endTime} น.)
-                    </span>
-                `).join('');
-            } else {
-                badgeBox.innerHTML = `<span class="text-xs bg-slate-800/60 text-slate-300 px-2.5 py-1 rounded-lg">ไม่มีห้องเปิดซ้อมวันนี้</span>`;
-            }
+            badgeBox.innerHTML = todayRooms.length > 0 
+                ? todayRooms.map(r => `<span class="text-xs bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2.5 py-1 rounded-lg font-bold">${r.name} (${r.startTime} - ${r.endTime} น.)</span>`).join('')
+                : `<span class="text-xs bg-slate-800/60 text-slate-300 px-2.5 py-1 rounded-lg">ไม่มีห้องเปิดซ้อมวันนี้</span>`;
 
             const selectedRooms = roomsData.filter(r => r.date === selectedDateStr);
             const roomsBox = document.getElementById('dashboardRoomsList');
-            if (selectedRooms.length > 0) {
-                roomsBox.innerHTML = selectedRooms.map(r => `
-                    <div class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl">
-                        <div class="font-bold text-slate-800 text-xs">${r.name}</div>
-                        <div class="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-                            <span><i class="fa-regular fa-clock text-indigo-500 mr-1"></i>${r.startTime} - ${r.endTime} น.</span>
-                            <span class="text-indigo-600 font-semibold bg-indigo-100/80 px-2 py-0.5 rounded-md">เปิดซ้อม</span>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                roomsBox.innerHTML = `<div class="col-span-2 text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีห้องปฏิบัติการเปิดให้บริการในวันที่เลือก</div>`;
-            }
+            roomsBox.innerHTML = selectedRooms.length > 0 
+                ? selectedRooms.map(r => `<div class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl"><div class="font-bold text-slate-800 text-xs">${r.name}</div><div class="text-[11px] text-slate-500 mt-1">${r.startTime} - ${r.endTime} น.</div></div>`).join('')
+                : `<div class="col-span-2 text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ไม่มีห้องปฏิบัติการเปิดให้บริการในวันที่เลือก</div>`;
 
+            // 🛠️ แสดงผลอุปกรณ์บนหน้าหลักครบถ้วน (ชื่อ, เหลือว่าง/ทั้งหมด, รอคิว, เวลาที่ต้องรอ)
             const eqBox = document.getElementById('dashboardEquipmentList');
             if (equipmentData.length > 0) {
                 eqBox.innerHTML = equipmentData.map(eq => {
@@ -831,18 +662,9 @@
                                 <span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[10px]">รอบละ ${eq.duration} นาที</span>
                             </div>
                             <div class="grid grid-cols-3 gap-1 text-center pt-1 border-t border-slate-200/60 text-[11px]">
-                                <div class="bg-white p-1.5 rounded border border-slate-100">
-                                    <div class="text-slate-400 text-[10px]">ว่าง</div>
-                                    <div class="font-bold text-emerald-600">${availableQty}/${eq.qty}</div>
-                                </div>
-                                <div class="bg-white p-1.5 rounded border border-slate-100">
-                                    <div class="text-slate-400 text-[10px]">รอคิว</div>
-                                    <div class="font-bold text-amber-600">${queueCount} คิว</div>
-                                </div>
-                                <div class="bg-white p-1.5 rounded border border-slate-100">
-                                    <div class="text-slate-400 text-[10px]">รออีกประมาณ</div>
-                                    <div class="font-bold text-indigo-600">${waitTime} นาที</div>
-                                </div>
+                                <div class="bg-white p-1.5 rounded border border-slate-100"><div class="text-slate-400 text-[10px]">ว่าง</div><div class="font-bold text-emerald-600">${availableQty}/${eq.qty}</div></div>
+                                <div class="bg-white p-1.5 rounded border border-slate-100"><div class="text-slate-400 text-[10px]">รอคิว</div><div class="font-bold text-amber-600">${queueCount} คิว</div></div>
+                                <div class="bg-white p-1.5 rounded border border-slate-100"><div class="text-slate-400 text-[10px]">รอประมาณ</div><div class="font-bold text-indigo-600">${waitTime} นาที</div></div>
                             </div>
                         </div>
                     `;
@@ -852,17 +674,8 @@
             }
         }
 
-        // 10. BOOKING FORM LOGIC
         function onBookingDateChange() {
-            const dateVal = document.getElementById('bookDate').value;
-            const roomSelect = document.getElementById('bookRoomSelect');
             const eqSelect = document.getElementById('bookEquipmentSelect');
-
-            const availableRooms = roomsData.filter(r => r.date === dateVal);
-            roomSelect.innerHTML = availableRooms.length > 0 
-                ? availableRooms.map(r => `<option value="${r.name}">${r.name} (${r.startTime} - ${r.endTime} น.)</option>`).join('')
-                : '<option value="">-- ไม่มีห้องเปิดในวันที่เลือก --</option>';
-
             eqSelect.innerHTML = equipmentData.length > 0
                 ? equipmentData.map(e => `<option value="${e.id}">${e.name} (รอบละ ${e.duration} นาที)</option>`).join('')
                 : '<option value="">-- ยังไม่มีอุปกรณ์ในระบบ --</option>';
@@ -873,31 +686,17 @@
             if (!currentUser) return alert('กรุณาเข้าสู่ระบบก่อนทำการจอง');
 
             const date = document.getElementById('bookDate').value;
-            const roomName = document.getElementById('bookRoomSelect').value;
             const student1 = `${currentUser.code} - ${currentUser.name}`;
             const student2 = document.getElementById('bookStudent2').value;
             const equipmentId = document.getElementById('bookEquipmentSelect').value;
 
-            if (!roomName) return alert('กรุณาเลือกห้องปฏิบัติการ');
             if (!student2) return alert('กรุณาเลือกคู่ซ้อมปฏิบัติ');
             if (!equipmentId) return alert('กรุณาเลือกอุปกรณ์ซ้อม');
 
             const eq = equipmentData.find(e => e.id === equipmentId);
-
-            const existing = bookingsData.find(b => 
-                b.date === date && 
-                b.equipmentId === equipmentId && 
-                (b.student1 === student1 || b.student2 === student1 || b.student1 === student2 || b.student2 === student2) &&
-                b.status !== 'ended'
-            );
-
-            if (existing) {
-                return alert('คุณหรือคู่ซ้อมได้ทำการจองอุปกรณ์ชิ้นนี้ในวันดังกล่าวไปแล้ว');
-            }
-
             const newBooking = {
                 date,
-                roomName,
+                roomName: "ห้องปฏิบัติการหลัก",
                 student1,
                 student2,
                 equipmentId,
@@ -913,13 +712,9 @@
                 alert('จองคิวซ้อมปฏิบัติเรียบร้อยแล้ว!');
                 updateAllViews();
                 switchTab('my-bookings');
-            }).catch(error => {
-                console.error("Error adding booking: ", error);
-                alert('เกิดข้อผิดพลาดในการจอง');
             });
         }
 
-        // 11. ALL BOOKINGS PAGE
         function renderAllBookingsView() {
             const filterDate = document.getElementById('allBookingsFilterDate').value;
             const filteredBookings = bookingsData.filter(b => b.date === filterDate);
@@ -927,289 +722,117 @@
             const activePairsBox = document.getElementById('activePairsGrid');
             const activeBookings = filteredBookings.filter(b => b.status === 'in-use');
 
-            if (activeBookings.length > 0) {
-                activePairsBox.innerHTML = activeBookings.map(b => {
-                    const mins = Math.floor(b.remainingSeconds / 60);
-                    const secs = b.remainingSeconds % 60;
-                    return `
-                        <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-4 rounded-2xl shadow-md border border-indigo-800 space-y-3">
-                            <div class="flex justify-between items-start">
-                                <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> กำลังซ้อม
-                                </span>
-                                <span class="text-[11px] text-indigo-300 font-mono">${b.roomName}</span>
-                            </div>
-                            <div>
-                                <div class="font-bold text-sm text-indigo-100">${b.equipmentName}</div>
-                                <div class="text-xs text-indigo-200/80 mt-1 space-y-0.5">
-                                    <div>1) ${b.student1}</div>
-                                    <div>2) ${b.student2}</div>
-                                </div>
-                            </div>
-                            <div class="pt-2 border-t border-indigo-800/60 flex justify-between items-center">
-                                <span class="text-[11px] text-indigo-300">เวลาซ้อมคงเหลือ:</span>
-                                <span class="text-base font-extrabold font-mono text-emerald-400">${mins}:${String(secs).padStart(2, '0')} นาที</span>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                activePairsBox.innerHTML = `<div class="col-span-full text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ขณะนี้ยังไม่มีคู่ซ้อมที่กำลังใช้อุปกรณ์อยู่ในวันที่เลือก</div>`;
-            }
+            activePairsBox.innerHTML = activeBookings.length > 0 ? activeBookings.map(b => {
+                const mins = Math.floor(b.remainingSeconds / 60);
+                const secs = b.remainingSeconds % 60;
+                return `
+                    <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-4 rounded-2xl shadow-md border border-indigo-800 space-y-3">
+                        <div class="flex justify-between items-start"><span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full">กำลังซ้อม</span></div>
+                        <div><div class="font-bold text-sm text-indigo-100">${b.equipmentName}</div><div class="text-xs text-indigo-200/80 mt-1">1) ${b.student1}<br>2) ${b.student2}</div></div>
+                        <div class="pt-2 border-t border-indigo-800/60 flex justify-between items-center"><span class="text-[11px]">คงเหลือ:</span><span class="text-base font-extrabold font-mono text-emerald-400">${mins}:${String(secs).padStart(2, '0')} นาที</span></div>
+                    </div>
+                `;
+            }).join('') : `<div class="col-span-full text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีคู่ซ้อมที่กำลังใช้อุปกรณ์อยู่ในวันที่เลือก</div>`;
 
             const tableBody = document.getElementById('allBookingsTableBody');
-            if (filteredBookings.length > 0) {
-                tableBody.innerHTML = filteredBookings.map(b => {
-                    let statusBadge = '';
-                    if (b.status === 'queued') statusBadge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">รอคิว</span>';
-                    else if (b.status === 'in-use') statusBadge = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">กำลังซ้อม</span>';
-                    else statusBadge = '<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px]">เสร็จสิ้น</span>';
-
-                    const mins = Math.floor(b.remainingSeconds / 60);
-                    const secs = b.remainingSeconds % 60;
-
-                    return `
-                        <tr class="hover:bg-slate-50 border-b border-slate-100">
-                            <td class="p-3 font-semibold text-slate-800">${b.equipmentName}</td>
-                            <td class="p-3 text-slate-600">
-                                <div>${b.student1}</div>
-                                <div>${b.student2}</div>
-                            </td>
-                            <td class="p-3 text-slate-500">${b.roomName}</td>
-                            <td class="p-3">${statusBadge}</td>
-                            <td class="p-3 text-right font-mono font-bold ${b.status === 'in-use' ? 'text-emerald-600' : 'text-slate-600'}">
-                                ${b.status === 'in-use' ? `${mins}:${String(secs).padStart(2, '0')}` : `${b.duration} นาที`}
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            } else {
-                tableBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 text-xs">ไม่มีรายการจองซ้อมประจำวันนี้</td></tr>`;
-            }
+            tableBody.innerHTML = filteredBookings.length > 0 ? filteredBookings.map(b => {
+                let statusBadge = b.status === 'queued' ? '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">รอคิว</span>' : (b.status === 'in-use' ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">กำลังซ้อม</span>' : '<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px]">เสร็จสิ้น</span>');
+                const mins = Math.floor(b.remainingSeconds / 60);
+                const secs = b.remainingSeconds % 60;
+                return `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100">
+                        <td class="p-3 font-semibold text-slate-800">${b.equipmentName}</td>
+                        <td class="p-3 text-slate-600"><div>${b.student1}</div><div>${b.student2}</div></td>
+                        <td class="p-3">${statusBadge}</td>
+                        <td class="p-3 text-right font-mono font-bold ${b.status === 'in-use' ? 'text-emerald-600' : 'text-slate-600'}">${b.status === 'in-use' ? `${mins}:${String(secs).padStart(2, '0')}` : `${b.duration} นาที`}</td>
+                    </tr>
+                `;
+            }).join('') : `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">ไม่มีรายการจองซ้อมประจำวันนี้</td></tr>`;
         }
 
-        // 12. MY BOOKINGS VIEW & TIMER START
         function renderMyBookingsView() {
             const myBox = document.getElementById('myBookingsList');
-            if (!currentUser) {
-                myBox.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs">กรุณาเข้าสู่ระบบก่อน</div>`;
-                return;
-            }
-
+            if (!currentUser) return;
             const myUserTag = `${currentUser.code}`;
             const myBookings = bookingsData.filter(b => b.student1.includes(myUserTag) || b.student2.includes(myUserTag));
 
-            if (myBookings.length > 0) {
-                myBox.innerHTML = myBookings.map(b => {
-                    const mins = Math.floor(b.remainingSeconds / 60);
-                    const secs = b.remainingSeconds % 60;
-
-                    return `
-                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-bold text-sm text-slate-800">${b.equipmentName}</span>
-                                    <span class="text-xs bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-0.5 rounded">${b.roomName}</span>
-                                </div>
-                                <div class="text-xs text-slate-500">
-                                    <span>วันที่: ${b.date}</span> | <span>คู่ซ้อม: ${b.student1} & ${b.student2}</span>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center gap-3 justify-between md:justify-end">
-                                <div class="text-right">
-                                    <div class="text-[10px] text-slate-400">เวลาคงเหลือ</div>
-                                    <div class="text-lg font-bold font-mono text-indigo-600">${mins}:${String(secs).padStart(2, '0')} น.</div>
-                                </div>
-
-                                ${b.status === 'queued' ? `
-                                    <button type="button" onclick="startBookingTimer('${b.id}')" class="bg-emerald-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl hover:bg-emerald-700 transition">
-                                        <i class="fa-solid fa-play mr-1"></i> เริ่มเวลาใช้งาน
-                                    </button>
-                                ` : ''}
-
-                                <button type="button" onclick="cancelBooking('${b.id}')" class="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-slate-100 text-xs">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </div>
+            myBox.innerHTML = myBookings.length > 0 ? myBookings.map(b => {
+                const mins = Math.floor(b.remainingSeconds / 60);
+                const secs = b.remainingSeconds % 60;
+                return `
+                    <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-sm text-slate-800">${b.equipmentName}</div>
+                            <div class="text-xs text-slate-500">วันที่: ${b.date} | คู่ซ้อม: ${b.student1} & ${b.student2}</div>
                         </div>
-                    `;
-                }).join('');
-            } else {
-                myBox.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">คุณยังไม่มีรายการจองซ้อมในระบบ</div>`;
-            }
+                        <div class="flex items-center gap-3">
+                            <div class="text-right"><div class="text-lg font-bold font-mono text-indigo-600">${mins}:${String(secs).padStart(2, '0')}</div></div>
+                            ${b.status === 'queued' ? `<button onclick="startBookingTimer('${b.id}')" class="bg-emerald-600 text-white font-bold text-xs px-3 py-2 rounded-xl">เริ่มใช้งาน</button>` : ''}
+                            <button onclick="cancelBooking('${b.id}')" class="text-slate-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            }).join('') : `<div class="text-center py-8 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">คุณยังไม่มีรายการจองซ้อมในระบบ</div>`;
         }
 
         function startBookingTimer(id) {
-            db.collection("jongsob_bookings").doc(id).update({
-                status: 'in-use',
-                startTime: new Date().toISOString()
-            }).catch(err => console.error("Error starting timer:", err));
+            db.collection("jongsob_bookings").doc(id).update({ status: 'in-use', startTime: new Date().toISOString() });
         }
 
         function cancelBooking(id) {
-            if (confirm('คุณต้องการยกเลิกการจองซ้อมนี้ใช่หรือไม่?')) {
-                db.collection("jongsob_bookings").doc(id).delete().catch(err => console.error("Error deleting:", err));
-            }
+            if (confirm('ยกเลิกการจองนี้?')) db.collection("jongsob_bookings").doc(id).delete();
         }
 
-        // 13. TIMER TICKING ENGINE (Syncs automatically)
         function tickTimers() {
             bookingsData.forEach(b => {
                 if (b.status === 'in-use' && b.remainingSeconds > 0) {
                     b.remainingSeconds -= 1;
-                    if (b.remainingSeconds <= 0) {
-                        b.status = 'ended';
-                    }
-                    db.collection("jongsob_bookings").doc(b.id).update({
-                        remainingSeconds: b.remainingSeconds,
-                        status: b.status
-                    }).catch(err => console.error("Error updating timer:", err));
+                    if (b.remainingSeconds <= 0) b.status = 'ended';
+                    db.collection("jongsob_bookings").doc(b.id).update({ remainingSeconds: b.remainingSeconds, status: b.status });
                 }
             });
         }
 
-        // 14. ADMIN MANAGEMENT (ROOMS & EQUIPMENT)
         function renderAdminView() {
-            const roomsBox = document.getElementById('adminRoomsList');
-            roomsBox.innerHTML = roomsData.length > 0 
-                ? roomsData.map(r => `
-                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl flex justify-between items-center text-xs">
-                        <div>
-                            <div class="font-bold text-slate-800">${r.name}</div>
-                            <div class="text-slate-500">วันที่ ${r.date} (${r.startTime} - ${r.endTime} น.)</div>
-                        </div>
-                        <div class="flex gap-1">
-                            <button type="button" onclick="openRoomModal('${r.id}')" class="p-1.5 text-slate-500 hover:text-indigo-600 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button type="button" onclick="deleteRoom('${r.id}')" class="p-1.5 text-slate-500 hover:text-red-500 rounded"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>
-                `).join('')
-                : `<div class="text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีห้องปฏิบัติการในระบบ (กดเพิ่มห้องได้เลย)</div>`;
+            document.getElementById('adminRoomsList').innerHTML = roomsData.length > 0 ? roomsData.map(r => `
+                <div class="bg-slate-50 border p-3 rounded-xl flex justify-between items-center text-xs">
+                    <div><div class="font-bold">${r.name}</div><div class="text-slate-500">${r.date} (${r.startTime} - ${r.endTime})</div></div>
+                    <button onclick="deleteRoom('${r.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('') : `<div class="text-center py-4 text-slate-400 text-xs">ยังไม่มีห้อง</div>`;
 
-            const eqBox = document.getElementById('adminEquipmentList');
-            eqBox.innerHTML = equipmentData.length > 0
-                ? equipmentData.map(e => `
-                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl flex justify-between items-center text-xs">
-                        <div>
-                            <div class="font-bold text-slate-800">${e.name}</div>
-                            <div class="text-slate-500">จำนวน: ${e.qty} ชุด | รอบละ ${e.duration} นาที</div>
-                        </div>
-                        <div class="flex gap-1">
-                            <button type="button" onclick="openEquipmentModal('${e.id}')" class="p-1.5 text-slate-500 hover:text-indigo-600 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button type="button" onclick="deleteEquipment('${e.id}')" class="p-1.5 text-slate-500 hover:text-red-500 rounded"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>
-                `).join('')
-                : `<div class="text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีอุปกรณ์ซ้อมในระบบ (กดเพิ่มอุปกรณ์ได้เลย)</div>`;
+            document.getElementById('adminEquipmentList').innerHTML = equipmentData.length > 0 ? equipmentData.map(e => `
+                <div class="bg-slate-50 border p-3 rounded-xl flex justify-between items-center text-xs">
+                    <div><div class="font-bold">${e.name}</div><div class="text-slate-500">จำนวน: ${e.qty} | รอบละ ${e.duration} นาที</div></div>
+                    <button onclick="deleteEquipment('${e.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('') : `<div class="text-center py-4 text-slate-400 text-xs">ยังไม่มีอุปกรณ์</div>`;
         }
 
-        function openRoomModal(id = '') {
-            document.getElementById('roomModal').classList.remove('hidden');
-            if (id && id !== 'undefined' && id !== 'null') {
-                const r = roomsData.find(x => x.id === id);
-                if (r) {
-                    document.getElementById('modalRoomId').value = r.id;
-                    document.getElementById('modalRoomName').value = r.name;
-                    document.getElementById('modalRoomDate').value = r.date;
-                    document.getElementById('modalRoomStartTime').value = r.startTime;
-                    document.getElementById('modalRoomEndTime').value = r.endTime;
-                    document.getElementById('roomModalTitle').textContent = 'แก้ไขห้องปฏิบัติการ';
-                    return;
-                }
-            }
-            document.getElementById('modalRoomId').value = '';
-            document.getElementById('modalRoomName').value = '';
-            document.getElementById('modalRoomDate').value = selectedDateStr;
-            document.getElementById('modalRoomStartTime').value = '09:00';
-            document.getElementById('modalRoomEndTime').value = '16:00';
-            document.getElementById('roomModalTitle').textContent = 'เพิ่มห้องเปิดซ้อม';
-        }
-
-        function closeRoomModal() {
-            document.getElementById('roomModal').classList.add('hidden');
-        }
-
+        function openRoomModal() { document.getElementById('roomModal').classList.remove('hidden'); }
+        function closeRoomModal() { document.getElementById('roomModal').classList.add('hidden'); }
         function saveRoom(e) {
             e.preventDefault();
-            const idInput = document.getElementById('modalRoomId').value;
-            const name = document.getElementById('modalRoomName').value;
-            const date = document.getElementById('modalRoomDate').value;
-            const startTime = document.getElementById('modalRoomStartTime').value;
-            const endTime = document.getElementById('modalRoomEndTime').value;
-
-            const roomObj = { name, date, startTime, endTime };
-
-            if (idInput) {
-                db.collection("jongsob_rooms").doc(idInput).update(roomObj).then(() => {
-                    closeRoomModal();
-                    updateAllViews();
-                });
-            } else {
-                db.collection("jongsob_rooms").add(roomObj).then(() => {
-                    closeRoomModal();
-                    updateAllViews();
-                });
-            }
+            db.collection("jongsob_rooms").add({
+                name: document.getElementById('modalRoomName').value,
+                date: document.getElementById('modalRoomDate').value,
+                startTime: document.getElementById('modalRoomStartTime').value,
+                endTime: document.getElementById('modalRoomEndTime').value
+            }).then(() => { closeRoomModal(); updateAllViews(); });
         }
+        function deleteRoom(id) { db.collection("jongsob_rooms").doc(id).delete(); }
 
-        function deleteRoom(id) {
-            if (confirm('ยืนยันลบห้องปฏิบัตินี้?')) {
-                db.collection("jongsob_rooms").doc(id).delete();
-            }
-        }
-
-        function openEquipmentModal(id = '') {
-            document.getElementById('equipmentModal').classList.remove('hidden');
-            if (id && id !== 'undefined' && id !== 'null') {
-                const eq = equipmentData.find(x => x.id === id);
-                if (eq) {
-                    document.getElementById('modalEquipmentId').value = eq.id;
-                    document.getElementById('modalEquipmentName').value = eq.name;
-                    document.getElementById('modalEquipmentQty').value = eq.qty;
-                    document.getElementById('modalEquipmentDuration').value = eq.duration;
-                    document.getElementById('equipmentModalTitle').textContent = 'แก้ไขอุปกรณ์ซ้อม';
-                    return;
-                }
-            }
-            document.getElementById('modalEquipmentId').value = '';
-            document.getElementById('modalEquipmentName').value = '';
-            document.getElementById('modalEquipmentQty').value = '2';
-            document.getElementById('modalEquipmentDuration').value = '30';
-            document.getElementById('equipmentModalTitle').textContent = 'เพิ่มอุปกรณ์ซ้อม';
-        }
-
-        function closeEquipmentModal() {
-            document.getElementById('equipmentModal').classList.add('hidden');
-        }
-
+        function openEquipmentModal() { document.getElementById('equipmentModal').classList.remove('hidden'); }
+        function closeEquipmentModal() { document.getElementById('equipmentModal').classList.add('hidden'); }
         function saveEquipment(e) {
             e.preventDefault();
-            const idInput = document.getElementById('modalEquipmentId').value;
-            const name = document.getElementById('modalEquipmentName').value;
-            const qty = document.getElementById('modalEquipmentQty').value;
-            const duration = document.getElementById('modalEquipmentDuration').value;
-
-            const eqObj = { name, qty, duration };
-
-            if (idInput) {
-                db.collection("jongsob_equipment").doc(idInput).update(eqObj).then(() => {
-                    closeEquipmentModal();
-                    updateAllViews();
-                });
-            } else {
-                db.collection("jongsob_equipment").add(eqObj).then(() => {
-                    closeEquipmentModal();
-                    updateAllViews();
-                });
-            }
+            db.collection("jongsob_equipment").add({
+                name: document.getElementById('modalEquipmentName').value,
+                qty: document.getElementById('modalEquipmentQty').value,
+                duration: document.getElementById('modalEquipmentDuration').value
+            }).then(() => { closeEquipmentModal(); updateAllViews(); });
         }
-
-        function deleteEquipment(id) {
-            if (confirm('ยืนยันลบอุปกรณ์ซ้อมนี้?')) {
-                db.collection("jongsob_equipment").doc(id).delete();
-            }
-        }
+        function deleteEquipment(id) { db.collection("jongsob_equipment").doc(id).delete(); }
     </script>
 </body>
 </html>
