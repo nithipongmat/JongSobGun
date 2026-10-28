@@ -409,8 +409,12 @@
         let currentUser = null;
         let selectedLoginStudent = null;
         
-        // 🕒 กำหนดค่าเริ่มต้นเป็นวันปัจจุบันอัตโนมัติ (Real-time Date)
-        let selectedDateStr = new Date().toISOString().split('T')[0];
+        // 🕒 แก้ไขดึงวันที่ปัจจุบันตามเวลาท้องถิ่นประเทศไทย (Local Date - YYYY-MM-DD) เป๊ะๆ
+        const nowLocal = new Date();
+        const yearLocal = nowLocal.getFullYear();
+        const monthLocal = String(nowLocal.getMonth() + 1).padStart(2, '0');
+        const dayLocal = String(nowLocal.getDate()).padStart(2, '0');
+        let selectedDateStr = `${yearLocal}-${monthLocal}-${dayLocal}`;
         let currentCalendarDate = new Date();
 
         let roomsData = [];
@@ -620,7 +624,6 @@
             const d = new Date(selectedDateStr);
             document.getElementById('selectedDateLabel').textContent = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 
-            // ใช้ selectedDateStr เทียบกับห้องที่เพิ่ม เพื่อให้ตรงกับวันที่เลือกในปฏิทิน
             const selectedRooms = roomsData.filter(r => r.date === selectedDateStr);
             const roomsBox = document.getElementById('dashboardRoomsList');
             roomsBox.innerHTML = selectedRooms.length > 0 
