@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jongsob - ระบบจองซ้อมปฏิบัติงาน (Practical Skill Booking)</title>
+    <title>จองซ้อมปฏิบัติ - ระบบจองซ้อมปฏิบัติ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
                     <i class="fa-solid fa-notes-medical text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight">Jongsob - ระบบจองซ้อมปฏิบัติงาน</h1>
+                    <h1 class="font-bold text-lg leading-tight">จองซ้อมปฏิบัติ</h1>
                     <p class="text-xs text-indigo-200">Practical Skill & Equipment Booking System</p>
                 </div>
             </div>
@@ -293,7 +293,7 @@
                 <input type="hidden" id="modalRoomId">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">ชื่อห้องปฏิบัติการ</label>
-                    <input type="text" id="modalRoomName" required placeholder="เช่น ห้องปฏิบัติการ 501" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
+                    <input type="text" id="modalRoomName" required placeholder="เช่น 409" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">วันที่เปิดซ้อม</label>
@@ -320,12 +320,12 @@
     <!-- MODAL: EQUIPMENT -->
     <div id="equipmentModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <h3 id="equipmentModalTitle" class="font-bold text-slate-800 text-base">เพิ่มอุปกรณ์ซ้อม (กำหนดวันและเวลาเปิดจองได้)</h3>
+            <h3 id="equipmentModalTitle" class="font-bold text-slate-800 text-base">เพิ่มอุปกรณ์ซ้อม</h3>
             <form onsubmit="saveEquipment(event)" class="space-y-3">
                 <input type="hidden" id="modalEquipmentId">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">ชื่ออุปกรณ์</label>
-                    <input type="text" id="modalEquipmentName" required placeholder="เช่น ชุดฝึก KFO" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
+                    <input type="text" id="modalEquipmentName" required placeholder="เช่น KFO" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">วันที่อุปกรณ์นี้เปิดให้ใช้งาน</label>
@@ -342,8 +342,8 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">กำหนดเวลาเปิดให้เริ่มจองได้ (เช่น วันนี้เริ่มจองได้ 18:00)</label>
-                    <input type="datetime-local" id="modalEquipmentOpenTime" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">กำหนดเวลาเปิดให้เริ่มจองได้ (เว้นว่างไว้ถ้าเปิดจองทันที)</label>
+                    <input type="datetime-local" id="modalEquipmentOpenTime" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeEquipmentModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">ยกเลิก</button>
@@ -437,7 +437,6 @@
 
             document.getElementById('bookDate').value = selectedDateStr;
             document.getElementById('allBookingsFilterDate').value = selectedDateStr;
-            document.getElementById('modalEquipmentDate').value = selectedDateStr;
 
             initFirebaseListeners();
         });
@@ -664,7 +663,6 @@
             }
             document.getElementById('dashboardRoomsList').innerHTML = weekDaysHtml;
 
-            // กรองอุปกรณ์เฉพาะของวันที่ถูกเลือกในปฏิทิน
             const dayEquipment = equipmentData.filter(e => e.date === selectedDateStr);
             const eqBox = document.getElementById('dashboardEquipmentList');
 
@@ -711,7 +709,6 @@
                         slotStatusHtml = `<div class="text-xs text-slate-400 mt-2">ไม่มีห้องเปิดให้บริการในวันที่เลือก</div>`;
                     }
 
-                    // แสดงเวลาเปิดให้เริ่มจอง (ถ้ามี)
                     let openTimeNotice = '';
                     if (eq.openTime) {
                         const openDt = new Date(eq.openTime);
@@ -738,8 +735,6 @@
         function onBookingDateChange() {
             const dateVal = document.getElementById('bookDate').value;
             const eqSelect = document.getElementById('bookEquipmentSelect');
-            
-            // กรองอุปกรณ์เฉพาะวันที่เลือกจอง
             const availableEquipments = equipmentData.filter(e => e.date === dateVal);
 
             eqSelect.innerHTML = availableEquipments.length > 0
@@ -761,7 +756,6 @@
 
             const eq = equipmentData.find(e => e.id === eqId);
 
-            // 💡 ตรวจสอบเงื่อนไขเวลาเปิดให้จอง (ถ้าตั้งเวลาเปิดจองไว้)
             if (eq && eq.openTime) {
                 const now = new Date();
                 const openTimeDate = new Date(eq.openTime);
@@ -939,7 +933,10 @@
             document.getElementById('adminRoomsList').innerHTML = roomsData.length > 0 ? roomsData.map(r => `
                 <div class="bg-slate-50 border p-3 rounded-xl flex justify-between items-center text-xs">
                     <div><div class="font-bold">${r.name}</div><div class="text-slate-500">${r.date} (${r.startTime} - ${r.endTime})</div></div>
-                    <button onclick="deleteRoom('${r.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="editRoom('${r.id}')" class="text-indigo-600 hover:text-indigo-800 p-1" title="แก้ไขห้อง"><i class="fa-solid fa-pen-to-square text-sm"></i></button>
+                        <button onclick="deleteRoom('${r.id}')" class="text-red-500 hover:text-red-700 p-1" title="ลบห้อง"><i class="fa-solid fa-trash text-sm"></i></button>
+                    </div>
                 </div>
             `).join('') : `<div class="text-center py-4 text-slate-400 text-xs">ยังไม่มีห้อง</div>`;
 
@@ -949,41 +946,92 @@
                         <div class="font-bold">${e.name} <span class="text-indigo-600 font-normal">(${e.date})</span></div>
                         <div class="text-slate-500">จำนวน: ${e.qty} ชิ้น | รอบละ ${e.duration} นาที</div>
                     </div>
-                    <button onclick="deleteEquipment('${e.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="editEquipment('${e.id}')" class="text-indigo-600 hover:text-indigo-800 p-1" title="แก้ไขอุปกรณ์"><i class="fa-solid fa-pen-to-square text-sm"></i></button>
+                        <button onclick="deleteEquipment('${e.id}')" class="text-red-500 hover:text-red-700 p-1" title="ลบอุปกรณ์"><i class="fa-solid fa-trash text-sm"></i></button>
+                    </div>
                 </div>
             `).join('') : `<div class="text-center py-4 text-slate-400 text-xs">ยังไม่มีอุปกรณ์</div>`;
         }
 
-        function openRoomModal() { document.getElementById('roomModal').classList.remove('hidden'); }
+        // ROOM ADMIN FUNCTIONS
+        function openRoomModal(roomId = '') {
+            document.getElementById('modalRoomId').value = roomId;
+            if (roomId) {
+                document.getElementById('roomModalTitle').textContent = 'แก้ไขห้องปฏิบัติการ';
+                const r = roomsData.find(item => item.id === roomId);
+                if (r) {
+                    document.getElementById('modalRoomName').value = r.name;
+                    document.getElementById('modalRoomDate').value = r.date;
+                    document.getElementById('modalRoomStartTime').value = r.startTime;
+                    document.getElementById('modalRoomEndTime').value = r.endTime;
+                }
+            } else {
+                document.getElementById('roomModalTitle').textContent = 'เพิ่มห้องปฏิบัติการ';
+                document.getElementById('modalRoomName').value = '';
+                document.getElementById('modalRoomDate').value = selectedDateStr;
+                document.getElementById('modalRoomStartTime').value = '16:00';
+                document.getElementById('modalRoomEndTime').value = '20:00';
+            }
+            document.getElementById('roomModal').classList.remove('hidden');
+        }
         function closeRoomModal() { document.getElementById('roomModal').classList.add('hidden'); }
+        function editRoom(id) { openRoomModal(id); }
         function saveRoom(e) {
             e.preventDefault();
-            db.collection("jongsob_rooms").add({
+            const id = document.getElementById('modalRoomId').value;
+            const roomData = {
                 name: document.getElementById('modalRoomName').value,
                 date: document.getElementById('modalRoomDate').value,
                 startTime: document.getElementById('modalRoomStartTime').value,
                 endTime: document.getElementById('modalRoomEndTime').value
-            }).then(() => { closeRoomModal(); updateAllViews(); });
-        }
-        function deleteRoom(id) { db.collection("jongsob_rooms").doc(id).delete(); }
+            };
 
-        function openEquipmentModal() { 
-            document.getElementById('modalEquipmentDate').value = selectedDateStr;
-            document.getElementById('equipmentModal').classList.remove('hidden'); 
+            const promise = id ? db.collection("jongsob_rooms").doc(id).set(roomData, { merge: true }) : db.collection("jongsob_rooms").add(roomData);
+            promise.then(() => { closeRoomModal(); updateAllViews(); });
+        }
+        function deleteRoom(id) { if(confirm('ต้องการลบห้องนี้ใช่หรือไม่?')) db.collection("jongsob_rooms").doc(id).delete(); }
+
+        // EQUIPMENT ADMIN FUNCTIONS
+        function openEquipmentModal(eqId = '') {
+            document.getElementById('modalEquipmentId').value = eqId;
+            if (eqId) {
+                document.getElementById('equipmentModalTitle').textContent = 'แก้ไขอุปกรณ์ซ้อม';
+                const eq = equipmentData.find(item => item.id === eqId);
+                if (eq) {
+                    document.getElementById('modalEquipmentName').value = eq.name;
+                    document.getElementById('modalEquipmentDate').value = eq.date;
+                    document.getElementById('modalEquipmentQty').value = eq.qty;
+                    document.getElementById('modalEquipmentDuration').value = eq.duration;
+                    document.getElementById('modalEquipmentOpenTime').value = eq.openTime || '';
+                }
+            } else {
+                document.getElementById('equipmentModalTitle').textContent = 'เพิ่มอุปกรณ์ซ้อม';
+                document.getElementById('modalEquipmentName').value = '';
+                document.getElementById('modalEquipmentDate').value = selectedDateStr;
+                document.getElementById('modalEquipmentQty').value = '2';
+                document.getElementById('modalEquipmentDuration').value = '30';
+                document.getElementById('modalEquipmentOpenTime').value = '';
+            }
+            document.getElementById('equipmentModal').classList.remove('hidden');
         }
         function closeEquipmentModal() { document.getElementById('equipmentModal').classList.add('hidden'); }
+        function editEquipment(id) { openEquipmentModal(id); }
         function saveEquipment(e) {
             e.preventDefault();
-            db.collection("jongsob_equipment").add({
+            const id = document.getElementById('modalEquipmentId').value;
+            const eqData = {
                 name: document.getElementById('modalEquipmentName').value,
                 date: document.getElementById('modalEquipmentDate').value,
                 qty: document.getElementById('modalEquipmentQty').value,
                 duration: document.getElementById('modalEquipmentDuration').value,
                 openTime: document.getElementById('modalEquipmentOpenTime').value || ''
-            }).then(() => { closeEquipmentModal(); updateAllViews(); });
+            };
+
+            const promise = id ? db.collection("jongsob_equipment").doc(id).set(eqData, { merge: true }) : db.collection("jongsob_equipment").add(eqData);
+            promise.then(() => { closeEquipmentModal(); updateAllViews(); });
         }
-        function deleteEquipment(id) { db.collection("jongsob_equipment").doc(id).delete(); }
+        function deleteEquipment(id) { if(confirm('ต้องการลบอุปกรณ์นี้ใช่หรือไม่?')) db.collection("jongsob_equipment").doc(id).delete(); }
     </script>
 </body>
 </html>
-
