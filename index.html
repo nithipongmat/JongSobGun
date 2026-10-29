@@ -192,7 +192,7 @@
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">ผู้จองคนที่ 2 (คู่ซ้อมปฏิบัติ)</label>
-                        <select id="bookStudent2" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                        <select id="bookStudent2" onchange="updateTimeSlots()" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
                             <option value="">-- เลือกคู่ซ้อมจากรายชื่อนักศึกษา --</option>
                         </select>
                     </div>
@@ -207,7 +207,7 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">เลือกรอบเวลาซ้อม (Time Slot)</label>
                         <select id="bookTimeSlot" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold text-indigo-600">
-                            <option value="">-- กรุณาเลือกวันที่และอุปกรณ์ก่อน --</option>
+                            <option value="">-- กรุณาเลือกวันที่และคู่ซ้อมก่อน --</option>
                         </select>
                     </div>
 
@@ -655,23 +655,58 @@
             }
             document.getElementById('dashboardRoomsList').innerHTML = weekDaysHtml;
 
-            // 💡 แสดงสถานะอุปกรณ์ พร้อมบอกโควต้าจำนวนชิ้นที่เหลือ (เช่น เหลือ 1/2 ชิ้น)
             const eqBox = document.getElementById('dashboardEquipmentList');
             if (equipmentData.length > 0) {
                 eqBox.innerHTML = equipmentData.map(eq => {
                     const totalQty = parseInt(eq.qty) || 1;
-                    // นับจำนวนการจองในวันที่เลือก (แยกตามรอบเวลา) เพื่อหาว่าช่วงเวลาไหนถูกจองไปกี่ชิ้นแล้ว
                     const dayBookings = bookingsData.filter(b => b.equipmentId === eq.id && b.date === selectedDateStr);
                     
+                    let slotStatusHtml = '';
+                    const roomsOnDate = roomsData.filter(r => r.date === selectedDateStr);
+                    
+                    if (roomsOnDate.length > 0) {
+                        const durationMins = parseInt(eq.duration);
+                        let timesArr = [];
+                        
+                        roomsOnDate.forEach(room => {
+                            let [startH, startM] = room.startTime.split(':').map(Number);
+                            let [endH, endM] = room.endTime.split(':').map(Number);
+                            let currentMins = startH * 60 + startM;
+                            let endMins = endH * 60 + endM;
+
+                            while (currentMins + durationMins <= endMins) {
+                                let nextMins = currentMins + durationMins;
+                                let sh = String(Math.floor(currentMins / 60)).padStart(2, '0');
+                                let sm = String(currentMins % 60).padStart(2, '0');
+                                let eh = String(Math.floor(nextMins / 60)).padStart(2, '0');
+                                let em = String(nextMins % 60).padStart(2, '0');
+                                let timeRange = `${sh}:${sm} - ${eh}:${em}`;
+                                
+                                let bookedCount = dayBookings.filter(b => b.timeSlot === timeRange).length;
+                                let remaining = totalQty - bookedCount;
+                                
+                                timesArr.push(`
+                                    <div class="flex justify-between items-center bg-white px-2.5 py-1.5 rounded-lg border border-slate-100 text-[11px]">
+                                        <span class="font-mono font-bold text-slate-700">${timeRange} น.</span>
+                                        <span class="font-bold ${remaining > 0 ? 'text-emerald-600' : 'text-red-500'}">เหลือ ${remaining}/${totalQty} ชิ้น</span>
+                                    </div>
+                                `);
+                                currentMins = nextMins;
+                            }
+                        });
+                        slotStatusHtml = timesArr.length > 0 ? `<div class="mt-2 space-y-1.5">${timesArr.join('')}</div>` : `<div class="text-xs text-slate-400 mt-2">ไม่มีรอบเวลาเปิดซ้อม</div>`;
+                    } else {
+                        slotStatusHtml = `<div class="text-xs text-slate-400 mt-2">ไม่มีห้องเปิดให้บริการในวันนี้</div>`;
+                    }
+
                     return `
                         <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
                             <div class="font-bold text-slate-800 text-xs flex justify-between items-start">
                                 <span>${eq.name}</span>
-                                <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">มีทั้งหมด ${totalQty} ชิ้น (รอบละ ${eq.duration} นาที)</span>
+                                <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">มีทั้งหมด ${totalQty} ชิ้น</span>
                             </div>
-                            <div class="text-xs text-slate-500 pt-1 border-t border-slate-200/60">
-                                รายการจองในวันที่เลือก: <strong class="text-indigo-600">${dayBookings.length} รอบเวลา</strong>
-                            </div>
+                            <div class="text-xs text-slate-500">รอบละ ${eq.duration} นาที</div>
+                            ${slotStatusHtml}
                         </div>
                     `;
                 }).join('');
@@ -691,10 +726,16 @@
         function updateTimeSlots() {
             const dateVal = document.getElementById('bookDate').value;
             const eqId = document.getElementById('bookEquipmentSelect').value;
+            const student2Val = document.getElementById('bookStudent2').value;
             const slotSelect = document.getElementById('bookTimeSlot');
 
             if (!dateVal || !eqId) {
                 slotSelect.innerHTML = '<option value="">-- กรุณาเลือกวันที่และอุปกรณ์ก่อน --</option>';
+                return;
+            }
+
+            if (!student2Val) {
+                slotSelect.innerHTML = '<option value="">-- กรุณาเลือกคู่ซ้อมก่อนเลือกรอบเวลา --</option>';
                 return;
             }
 
@@ -706,9 +747,24 @@
                 return;
             }
 
+            // แยกเอารหัสของนักศึกษาทั้งคู่มาตรวจสอบ
+            const myCode = currentUser ? currentUser.code : '';
+            const partnerCodeMatch = student2Val.match(/^(\d+)/);
+            const partnerCode = partnerCodeMatch ? partnerCodeMatch[1] : '';
+
+            // ตรวจสอบว่าคู่คู่นี้มีการจองใดๆ ไปแล้วบ้างในวันนั้น
+            const pairBookingsOnDate = bookingsData.filter(b => {
+                if (b.date !== dateVal) return false;
+                const hasMyCode = b.student1.includes(myCode) || b.student2.includes(myCode);
+                const hasPartnerCode = b.student1.includes(partnerCode) || b.student2.includes(partnerCode);
+                return hasMyCode && hasPartnerCode;
+            });
+
+            const bookedTimeSlotsForPair = pairBookingsOnDate.map(b => b.timeSlot);
+
             let slotsHtml = '<option value="">-- เลือกรอบเวลาซ้อม --</option>';
             const durationMins = parseInt(eq.duration);
-            const maxQty = parseInt(eq.qty) || 1; // จำนวนชิ้นที่มีสูงสุดต่อรอบ
+            const maxQty = parseInt(eq.qty) || 1;
 
             roomsOnDate.forEach(room => {
                 let [startH, startM] = room.startTime.split(':').map(Number);
@@ -727,14 +783,19 @@
 
                     let timeRange = `${sh}:${sm} - ${eh}:${em}`;
                     
-                    // นับจำนวนที่มีคนจองไปแล้วในรอบเวลานี้
+                    // เงื่อนไขที่ 1: คู่คู่นี้จองซ้ำในเวลาเดียวกันไปแล้วหรือไม่
+                    const isPairAlreadyBookedThisSlot = bookedTimeSlotsForPair.includes(timeRange);
+                    
+                    // เงื่อนไขที่ 2: อุปกรณ์ชิ้นนี้ในรอบเวลานี้เต็มหรือยัง
                     let bookedCountInSlot = bookingsData.filter(b => b.date === dateVal && b.equipmentId === eqId && b.timeSlot === timeRange).length;
                     let remainingQty = maxQty - bookedCountInSlot;
 
-                    if (remainingQty > 0) {
+                    if (isPairAlreadyBookedThisSlot) {
+                        slotsHtml += `<option value="" disabled style="color: #94a3b8;">${timeRange} น. (${room.name}) — คู่ของคุณมีคิวซ้อมในช่วงเวลานี้แล้ว</option>`;
+                    } else if (remainingQty > 0) {
                         slotsHtml += `<option value="${timeRange}">${timeRange} น. (${room.name}) — เหลือ ${remainingQty}/${maxQty} ชิ้น</option>`;
                     } else {
-                        slotsHtml += `<option value="" disabled style="color: #94a3b8;">${timeRange} น. (${room.name}) — เต็มแล้ว (0/${maxQty})</option>`;
+                        slotsHtml += `<option value="" disabled style="color: #94a3b8;">${timeRange} น. (${room.name}) — อุปกรณ์เต็มแล้ว (0/${maxQty})</option>`;
                     }
 
                     currentMins = nextMins;
@@ -757,6 +818,22 @@
             if (!student2) return alert('กรุณาเลือกคู่ซ้อมปฏิบัติ');
             if (!equipmentId) return alert('กรุณาเลือกอุปกรณ์ซ้อม');
             if (!timeSlot) return alert('กรุณาเลือกรอบเวลาซ้อม');
+
+            const myCode = currentUser.code;
+            const partnerCodeMatch = student2.match(/^(\d+)/);
+            const partnerCode = partnerCodeMatch ? partnerCodeMatch[1] : '';
+
+            // ตรวจสอบซ้ำอีกรอบฝั่ง Submit ป้องกันการกดเบิ้ล
+            const alreadyBooked = bookingsData.some(b => {
+                if (b.date !== date || b.timeSlot !== timeSlot) return false;
+                const hasMyCode = b.student1.includes(myCode) || b.student2.includes(myCode);
+                const hasPartnerCode = b.student1.includes(partnerCode) || b.student2.includes(partnerCode);
+                return hasMyCode && hasPartnerCode;
+            });
+
+            if (alreadyBooked) {
+                return alert('ขออภัย คู่ซ้อมคู่นี้มีคิวจองอุปกรณ์ในช่วงเวลาเดียวกันนี้ไปแล้ว ไม่อนุญาตให้จองซ้ำในเวลาเดิมครับ!');
+            }
 
             const eq = equipmentData.find(e => e.id === equipmentId);
             const maxQty = parseInt(eq.qty) || 1;
@@ -863,3 +940,4 @@
     </script>
 </body>
 </html>
+
