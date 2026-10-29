@@ -207,7 +207,7 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">เลือกรอบเวลาซ้อม (Time Slot)</label>
                         <select id="bookTimeSlot" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold text-indigo-600">
-                            <option value="">-- กรุณาเลือกวันที่และคู่ซ้อมก่อน --</option>
+                            <option value="">-- กรุณาเลือกวันที่และอุปกรณ์ก่อน --</option>
                         </select>
                     </div>
 
@@ -320,22 +320,30 @@
     <!-- MODAL: EQUIPMENT -->
     <div id="equipmentModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <h3 id="equipmentModalTitle" class="font-bold text-slate-800 text-base">เพิ่มอุปกรณ์ซ้อม</h3>
+            <h3 id="equipmentModalTitle" class="font-bold text-slate-800 text-base">เพิ่มอุปกรณ์ซ้อม (กำหนดวันและเวลาเปิดจองได้)</h3>
             <form onsubmit="saveEquipment(event)" class="space-y-3">
                 <input type="hidden" id="modalEquipmentId">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">ชื่ออุปกรณ์</label>
-                    <input type="text" id="modalEquipmentName" required placeholder="เช่น ชุดฝึกฉีดยา" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
+                    <input type="text" id="modalEquipmentName" required placeholder="เช่น ชุดฝึก KFO" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">วันที่อุปกรณ์นี้เปิดให้ใช้งาน</label>
+                    <input type="date" id="modalEquipmentDate" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">จำนวนที่มีทั้งหมด (ชิ้น)</label>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">จำนวนที่มี (ชิ้น)</label>
                         <input type="number" id="modalEquipmentQty" required min="1" value="2" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">เวลาซ้อม (นาที)</label>
                         <input type="number" id="modalEquipmentDuration" required min="5" value="30" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                     </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">กำหนดเวลาเปิดให้เริ่มจองได้ (เช่น วันนี้เริ่มจองได้ 18:00)</label>
+                    <input type="datetime-local" id="modalEquipmentOpenTime" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeEquipmentModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">ยกเลิก</button>
@@ -429,6 +437,7 @@
 
             document.getElementById('bookDate').value = selectedDateStr;
             document.getElementById('allBookingsFilterDate').value = selectedDateStr;
+            document.getElementById('modalEquipmentDate').value = selectedDateStr;
 
             initFirebaseListeners();
         });
@@ -584,7 +593,7 @@
 
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const hasBooking = bookingsData.some(b => b.date === dayDateStr) || roomsData.some(r => r.date === dayDateStr);
+                const hasBooking = bookingsData.some(b => b.date === dayDateStr) || roomsData.some(r => r.date === dayDateStr) || equipmentData.some(e => e.date === dayDateStr);
                 const isSelected = dayDateStr === selectedDateStr;
 
                 let classes = "py-2 rounded-lg text-center font-medium cursor-pointer transition relative hover:bg-indigo-50 ";
@@ -655,9 +664,12 @@
             }
             document.getElementById('dashboardRoomsList').innerHTML = weekDaysHtml;
 
+            // กรองอุปกรณ์เฉพาะของวันที่ถูกเลือกในปฏิทิน
+            const dayEquipment = equipmentData.filter(e => e.date === selectedDateStr);
             const eqBox = document.getElementById('dashboardEquipmentList');
-            if (equipmentData.length > 0) {
-                eqBox.innerHTML = equipmentData.map(eq => {
+
+            if (dayEquipment.length > 0) {
+                eqBox.innerHTML = dayEquipment.map(eq => {
                     const totalQty = parseInt(eq.qty) || 1;
                     const dayBookings = bookingsData.filter(b => b.equipmentId === eq.id && b.date === selectedDateStr);
                     
@@ -696,30 +708,43 @@
                         });
                         slotStatusHtml = timesArr.length > 0 ? `<div class="mt-2 space-y-1.5">${timesArr.join('')}</div>` : `<div class="text-xs text-slate-400 mt-2">ไม่มีรอบเวลาเปิดซ้อม</div>`;
                     } else {
-                        slotStatusHtml = `<div class="text-xs text-slate-400 mt-2">ไม่มีห้องเปิดให้บริการในวันนี้</div>`;
+                        slotStatusHtml = `<div class="text-xs text-slate-400 mt-2">ไม่มีห้องเปิดให้บริการในวันที่เลือก</div>`;
+                    }
+
+                    // แสดงเวลาเปิดให้เริ่มจอง (ถ้ามี)
+                    let openTimeNotice = '';
+                    if (eq.openTime) {
+                        const openDt = new Date(eq.openTime);
+                        openTimeNotice = `<div class="text-[10px] text-amber-600 font-semibold mt-1"><i class="fa-regular fa-clock"></i> เปิดจอง: ${openDt.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}</div>`;
                     }
 
                     return `
                         <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
                             <div class="font-bold text-slate-800 text-xs flex justify-between items-start">
                                 <span>${eq.name}</span>
-                                <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">มีทั้งหมด ${totalQty} ชิ้น</span>
+                                <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">มี ${totalQty} ชิ้น</span>
                             </div>
                             <div class="text-xs text-slate-500">รอบละ ${eq.duration} นาที</div>
+                            ${openTimeNotice}
                             ${slotStatusHtml}
                         </div>
                     `;
                 }).join('');
             } else {
-                eqBox.innerHTML = `<div class="col-span-2 text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายการอุปกรณ์ซ้อมในระบบ</div>`;
+                eqBox.innerHTML = `<div class="col-span-2 text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายการอุปกรณ์ซ้อมในวันที่เลือก</div>`;
             }
         }
 
         function onBookingDateChange() {
+            const dateVal = document.getElementById('bookDate').value;
             const eqSelect = document.getElementById('bookEquipmentSelect');
-            eqSelect.innerHTML = equipmentData.length > 0
-                ? '<option value="">-- เลือกอุปกรณ์ --</option>' + equipmentData.map(e => `<option value="${e.id}">${e.name} (มี ${e.qty} ชิ้น | รอบละ ${e.duration} นาที)</option>`).join('')
-                : '<option value="">-- ยังไม่มีอุปกรณ์ในระบบ --</option>';
+            
+            // กรองอุปกรณ์เฉพาะวันที่เลือกจอง
+            const availableEquipments = equipmentData.filter(e => e.date === dateVal);
+
+            eqSelect.innerHTML = availableEquipments.length > 0
+                ? '<option value="">-- เลือกอุปกรณ์ --</option>' + availableEquipments.map(e => `<option value="${e.id}">${e.name} (มี ${e.qty} ชิ้น | รอบละ ${e.duration} นาที)</option>`).join('')
+                : '<option value="">-- ไม่มีอุปกรณ์เปิดให้ซ้อมในวันที่เลือก --</option>';
             updateTimeSlots();
         }
 
@@ -734,12 +759,23 @@
                 return;
             }
 
+            const eq = equipmentData.find(e => e.id === eqId);
+
+            // 💡 ตรวจสอบเงื่อนไขเวลาเปิดให้จอง (ถ้าตั้งเวลาเปิดจองไว้)
+            if (eq && eq.openTime) {
+                const now = new Date();
+                const openTimeDate = new Date(eq.openTime);
+                if (now < openTimeDate) {
+                    slotSelect.innerHTML = `<option value="" disabled style="color: #ef4444;">ยังไม่ถึงเวลาเปิดจอง (เปิดให้จอง ${openTimeDate.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })})</option>`;
+                    return;
+                }
+            }
+
             if (!student2Val) {
                 slotSelect.innerHTML = '<option value="">-- กรุณาเลือกคู่ซ้อมก่อนเลือกรอบเวลา --</option>';
                 return;
             }
 
-            const eq = equipmentData.find(e => e.id === eqId);
             const roomsOnDate = roomsData.filter(r => r.date === dateVal);
 
             if (!eq || roomsOnDate.length === 0) {
@@ -747,12 +783,10 @@
                 return;
             }
 
-            // แยกเอารหัสของนักศึกษาทั้งคู่มาตรวจสอบ
             const myCode = currentUser ? currentUser.code : '';
             const partnerCodeMatch = student2Val.match(/^(\d+)/);
             const partnerCode = partnerCodeMatch ? partnerCodeMatch[1] : '';
 
-            // ตรวจสอบว่าคู่คู่นี้มีการจองใดๆ ไปแล้วบ้างในวันนั้น
             const pairBookingsOnDate = bookingsData.filter(b => {
                 if (b.date !== dateVal) return false;
                 const hasMyCode = b.student1.includes(myCode) || b.student2.includes(myCode);
@@ -783,10 +817,7 @@
 
                     let timeRange = `${sh}:${sm} - ${eh}:${em}`;
                     
-                    // เงื่อนไขที่ 1: คู่คู่นี้จองซ้ำในเวลาเดียวกันไปแล้วหรือไม่
                     const isPairAlreadyBookedThisSlot = bookedTimeSlotsForPair.includes(timeRange);
-                    
-                    // เงื่อนไขที่ 2: อุปกรณ์ชิ้นนี้ในรอบเวลานี้เต็มหรือยัง
                     let bookedCountInSlot = bookingsData.filter(b => b.date === dateVal && b.equipmentId === eqId && b.timeSlot === timeRange).length;
                     let remainingQty = maxQty - bookedCountInSlot;
 
@@ -819,11 +850,19 @@
             if (!equipmentId) return alert('กรุณาเลือกอุปกรณ์ซ้อม');
             if (!timeSlot) return alert('กรุณาเลือกรอบเวลาซ้อม');
 
+            const eq = equipmentData.find(e => e.id === equipmentId);
+            if (eq && eq.openTime) {
+                const now = new Date();
+                const openTimeDate = new Date(eq.openTime);
+                if (now < openTimeDate) {
+                    return alert('ยังไม่ถึงเวลาเปิดให้จองอุปกรณ์ชิ้นนี้ครับ!');
+                }
+            }
+
             const myCode = currentUser.code;
             const partnerCodeMatch = student2.match(/^(\d+)/);
             const partnerCode = partnerCodeMatch ? partnerCodeMatch[1] : '';
 
-            // ตรวจสอบซ้ำอีกรอบฝั่ง Submit ป้องกันการกดเบิ้ล
             const alreadyBooked = bookingsData.some(b => {
                 if (b.date !== date || b.timeSlot !== timeSlot) return false;
                 const hasMyCode = b.student1.includes(myCode) || b.student2.includes(myCode);
@@ -835,7 +874,6 @@
                 return alert('ขออภัย คู่ซ้อมคู่นี้มีคิวจองอุปกรณ์ในช่วงเวลาเดียวกันนี้ไปแล้ว ไม่อนุญาตให้จองซ้ำในเวลาเดิมครับ!');
             }
 
-            const eq = equipmentData.find(e => e.id === equipmentId);
             const maxQty = parseInt(eq.qty) || 1;
             const bookedCountInSlot = bookingsData.filter(b => b.date === date && b.equipmentId === equipmentId && b.timeSlot === timeSlot).length;
 
@@ -907,7 +945,10 @@
 
             document.getElementById('adminEquipmentList').innerHTML = equipmentData.length > 0 ? equipmentData.map(e => `
                 <div class="bg-slate-50 border p-3 rounded-xl flex justify-between items-center text-xs">
-                    <div><div class="font-bold">${e.name}</div><div class="text-slate-500">จำนวน: ${e.qty} ชิ้น | รอบละ ${e.duration} นาที</div></div>
+                    <div>
+                        <div class="font-bold">${e.name} <span class="text-indigo-600 font-normal">(${e.date})</span></div>
+                        <div class="text-slate-500">จำนวน: ${e.qty} ชิ้น | รอบละ ${e.duration} นาที</div>
+                    </div>
                     <button onclick="deleteEquipment('${e.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
                 </div>
             `).join('') : `<div class="text-center py-4 text-slate-400 text-xs">ยังไม่มีอุปกรณ์</div>`;
@@ -926,14 +967,19 @@
         }
         function deleteRoom(id) { db.collection("jongsob_rooms").doc(id).delete(); }
 
-        function openEquipmentModal() { document.getElementById('equipmentModal').classList.remove('hidden'); }
+        function openEquipmentModal() { 
+            document.getElementById('modalEquipmentDate').value = selectedDateStr;
+            document.getElementById('equipmentModal').classList.remove('hidden'); 
+        }
         function closeEquipmentModal() { document.getElementById('equipmentModal').classList.add('hidden'); }
         function saveEquipment(e) {
             e.preventDefault();
             db.collection("jongsob_equipment").add({
                 name: document.getElementById('modalEquipmentName').value,
+                date: document.getElementById('modalEquipmentDate').value,
                 qty: document.getElementById('modalEquipmentQty').value,
-                duration: document.getElementById('modalEquipmentDuration').value
+                duration: document.getElementById('modalEquipmentDuration').value,
+                openTime: document.getElementById('modalEquipmentOpenTime').value || ''
             }).then(() => { closeEquipmentModal(); updateAllViews(); });
         }
         function deleteEquipment(id) { db.collection("jongsob_equipment").doc(id).delete(); }
