@@ -75,15 +75,25 @@
                     <i class="fa-solid fa-user-gear text-3xl text-indigo-200"></i>
                 </div>
                 <h2 class="text-xl font-bold">เข้าสู่ระบบนักศึกษา</h2>
-                <p class="text-xs text-indigo-200 mt-1">เลือกรายชื่อรหัสนักศึกษาของคุณจากเมนูด้านล่าง</p>
+                <p class="text-xs text-indigo-200 mt-1">พิมพ์รหัสนักศึกษา (เช่น 6810011) หรือชื่อ เพื่อค้นหาและเลือก</p>
             </div>
             
             <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">เลือกรหัสนักศึกษา / ชื่อ-นามสกุล</label>
-                    <select id="loginSelectDropdown" onchange="onLoginSelectChange()" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold text-slate-800">
-                        <option value="">-- กรุณาเลือกรายชื่อนักศึกษา --</option>
-                    </select>
+                <div class="relative">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">ค้นหารหัสนักศึกษา / ชื่อ-นามสกุล</label>
+                    <div class="relative">
+                        <input type="text" id="loginSearchInput" oninput="handleLoginSearch()" placeholder="พิมพ์รหัส 6810... หรือชื่อ..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400"></i>
+                    </div>
+                    <div id="loginSearchResults" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto z-50 custom-scrollbar"></div>
+                </div>
+
+                <div id="selectedStudentCard" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex items-center justify-between">
+                    <div>
+                        <div id="selectedStudentCode" class="text-xs font-mono font-bold text-indigo-600">6810001</div>
+                        <div id="selectedStudentName" class="text-sm font-semibold text-slate-800">กชพร คชวงษ์</div>
+                    </div>
+                    <i class="fa-solid fa-circle-check text-indigo-600 text-lg"></i>
                 </div>
 
                 <button id="btnLoginConfirm" onclick="confirmLogin()" disabled class="w-full bg-slate-300 text-slate-500 py-3 rounded-xl font-bold transition disabled:cursor-not-allowed">
@@ -455,31 +465,40 @@
 
         function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
 
-        function populateStudentDropdown() {
-            const selectLogin = document.getElementById('loginSelectDropdown');
-            if (selectLogin) {
-                selectLogin.innerHTML = '<option value="">-- กรุณาเลือกรายชื่อนักศึกษา --</option>' + STUDENTS.map(s => `<option value="${s.code}">${s.code} - ${s.name}</option>`).join('');
+        function handleLoginSearch() {
+            const query = document.getElementById('loginSearchInput').value.trim().toLowerCase();
+            const resultsBox = document.getElementById('loginSearchResults');
+            if (!query) { 
+                resultsBox.classList.add('hidden'); 
+                return; 
             }
 
-            const selectBook = document.getElementById('bookStudent2');
-            if (selectBook) {
-                selectBook.innerHTML = '<option value="">-- เลือกคู่ซ้อมจากรายชื่อนักศึกษา --</option>' + STUDENTS.map(s => `<option value="${s.code} - ${s.name}">${s.code} - ${s.name}</option>`).join('');
+            const matches = STUDENTS.filter(s => s.code.toLowerCase().includes(query) || s.name.toLowerCase().includes(query));
+            if (matches.length > 0) {
+                resultsBox.innerHTML = matches.map(s => `
+                    <div onclick="selectStudentForLogin('${s.code}')" class="p-3 hover:bg-indigo-50 border-b border-slate-100 cursor-pointer flex items-center justify-between text-xs">
+                        <div><span class="font-mono font-bold text-indigo-600 mr-2">${s.code}</span><span class="font-medium text-slate-800">${s.name}</span></div>
+                        <i class="fa-solid fa-chevron-right text-slate-300"></i>
+                    </div>
+                `).join('');
+                resultsBox.classList.remove('hidden');
+            } else {
+                resultsBox.innerHTML = `<div class="p-3 text-center text-xs text-slate-400">ไม่พบข้อมูลนักศึกษา</div>`;
+                resultsBox.classList.remove('hidden');
             }
         }
 
-        function onLoginSelectChange() {
-            const code = document.getElementById('loginSelectDropdown').value;
-            const btn = document.getElementById('btnLoginConfirm');
-            
-            if (!code) {
-                selectedLoginStudent = null;
-                btn.disabled = true;
-                btn.classList.add('bg-slate-300', 'text-slate-500');
-                btn.classList.remove('bg-indigo-600', 'text-white');
-                return;
-            }
+        function selectStudentForLogin(code) {
+            const student = STUDENTS.find(s => s.code === code);
+            if (!student) return;
+            selectedLoginStudent = student;
+            document.getElementById('selectedStudentCode').textContent = student.code;
+            document.getElementById('selectedStudentName').textContent = student.name;
+            document.getElementById('selectedStudentCard').classList.remove('hidden');
+            document.getElementById('loginSearchResults').classList.add('hidden');
+            document.getElementById('loginSearchInput').value = `${student.code} - ${student.name}`;
 
-            selectedLoginStudent = STUDENTS.find(s => s.code === code);
+            const btn = document.getElementById('btnLoginConfirm');
             btn.disabled = false;
             btn.classList.remove('bg-slate-300', 'text-slate-500');
             btn.classList.add('bg-indigo-600', 'text-white');
@@ -497,7 +516,8 @@
             localStorage.removeItem('ps_current_user');
             currentUser = null;
             selectedLoginStudent = null;
-            document.getElementById('loginSelectDropdown').value = '';
+            document.getElementById('loginSearchInput').value = '';
+            document.getElementById('selectedStudentCard').classList.add('hidden');
             const btn = document.getElementById('btnLoginConfirm');
             btn.disabled = true;
             btn.classList.add('bg-slate-300', 'text-slate-500');
@@ -513,13 +533,23 @@
             document.getElementById('mainNav').classList.remove('hidden');
 
             document.getElementById('bookStudent1').value = `${currentUser.code} - ${currentUser.name}`;
-            
-            // กรองตัวเองออกจากตัวเลือกคู่ซ้อม
-            const selectBook = document.getElementById('bookStudent2');
-            selectBook.innerHTML = '<option value="">-- เลือกคู่ซ้อมจากรายชื่อนักศึกษา --</option>' + 
-                STUDENTS.filter(s => s.code !== currentUser.code).map(s => `<option value="${s.code} - ${s.name}">${s.code} - ${s.name}</option>`).join('');
-            
+            populateStudentDropdown();
             updateAllViews();
+        }
+
+        function populateStudentDropdown() {
+            const select = document.getElementById('bookStudent2');
+            if (select) {
+                select.innerHTML = '<option value="">-- เลือกคู่ซ้อมจากรายชื่อนักศึกษา --</option>';
+                STUDENTS.forEach(s => {
+                    if (!currentUser || s.code !== currentUser.code) {
+                        const opt = document.createElement('option');
+                        opt.value = `${s.code} - ${s.name}`;
+                        opt.textContent = `${s.code} - ${s.name}`;
+                        select.appendChild(opt);
+                    }
+                });
+            }
         }
 
         function switchTab(tabId) {
@@ -808,7 +838,7 @@
             e.preventDefault();
             db.collection("jongsob_equipment").add({
                 name: document.getElementById('modalEquipmentName').value,
-                qty: document.getElementById('modalEquipmentQty`+`.value`),
+                qty: document.getElementById('modalEquipmentQty').value,
                 duration: document.getElementById('modalEquipmentDuration').value
             }).then(() => { closeEquipmentModal(); updateAllViews(); });
         }
