@@ -329,7 +329,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">จำนวนที่มี (ชุด)</label>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">จำนวนที่มีทั้งหมด (ชิ้น)</label>
                         <input type="number" id="modalEquipmentQty" required min="1" value="2" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs outline-none">
                     </div>
                     <div>
@@ -655,18 +655,22 @@
             }
             document.getElementById('dashboardRoomsList').innerHTML = weekDaysHtml;
 
+            // 💡 แสดงสถานะอุปกรณ์ พร้อมบอกโควต้าจำนวนชิ้นที่เหลือ (เช่น เหลือ 1/2 ชิ้น)
             const eqBox = document.getElementById('dashboardEquipmentList');
             if (equipmentData.length > 0) {
                 eqBox.innerHTML = equipmentData.map(eq => {
-                    const bookedCount = bookingsData.filter(b => b.equipmentId === eq.id && b.date === selectedDateStr).length;
+                    const totalQty = parseInt(eq.qty) || 1;
+                    // นับจำนวนการจองในวันที่เลือก (แยกตามรอบเวลา) เพื่อหาว่าช่วงเวลาไหนถูกจองไปกี่ชิ้นแล้ว
+                    const dayBookings = bookingsData.filter(b => b.equipmentId === eq.id && b.date === selectedDateStr);
+                    
                     return `
                         <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
                             <div class="font-bold text-slate-800 text-xs flex justify-between items-start">
                                 <span>${eq.name}</span>
-                                <span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[10px]">รอบละ ${eq.duration} นาที</span>
+                                <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold">มีทั้งหมด ${totalQty} ชิ้น (รอบละ ${eq.duration} นาที)</span>
                             </div>
                             <div class="text-xs text-slate-500 pt-1 border-t border-slate-200/60">
-                                มีการจองแล้ว: <strong class="text-indigo-600">${bookedCount} รอบ</strong>
+                                รายการจองในวันที่เลือก: <strong class="text-indigo-600">${dayBookings.length} รอบเวลา</strong>
                             </div>
                         </div>
                     `;
@@ -679,7 +683,7 @@
         function onBookingDateChange() {
             const eqSelect = document.getElementById('bookEquipmentSelect');
             eqSelect.innerHTML = equipmentData.length > 0
-                ? '<option value="">-- เลือกอุปกรณ์ --</option>' + equipmentData.map(e => `<option value="${e.id}">${e.name} (รอบละ ${e.duration} นาที)</option>`).join('')
+                ? '<option value="">-- เลือกอุปกรณ์ --</option>' + equipmentData.map(e => `<option value="${e.id}">${e.name} (มี ${e.qty} ชิ้น | รอบละ ${e.duration} นาที)</option>`).join('')
                 : '<option value="">-- ยังไม่มีอุปกรณ์ในระบบ --</option>';
             updateTimeSlots();
         }
@@ -704,6 +708,7 @@
 
             let slotsHtml = '<option value="">-- เลือกรอบเวลาซ้อม --</option>';
             const durationMins = parseInt(eq.duration);
+            const maxQty = parseInt(eq.qty) || 1; // จำนวนชิ้นที่มีสูงสุดต่อรอบ
 
             roomsOnDate.forEach(room => {
                 let [startH, startM] = room.startTime.split(':').map(Number);
@@ -721,10 +726,15 @@
                     let em = String(nextMins % 60).padStart(2, '0');
 
                     let timeRange = `${sh}:${sm} - ${eh}:${em}`;
-                    let isBooked = bookingsData.some(b => b.date === dateVal && b.equipmentId === eqId && b.timeSlot === timeRange);
+                    
+                    // นับจำนวนที่มีคนจองไปแล้วในรอบเวลานี้
+                    let bookedCountInSlot = bookingsData.filter(b => b.date === dateVal && b.equipmentId === eqId && b.timeSlot === timeRange).length;
+                    let remainingQty = maxQty - bookedCountInSlot;
 
-                    if (!isBooked) {
-                        slotsHtml += `<option value="${timeRange}">${timeRange} น. (${room.name})</option>`;
+                    if (remainingQty > 0) {
+                        slotsHtml += `<option value="${timeRange}">${timeRange} น. (${room.name}) — เหลือ ${remainingQty}/${maxQty} ชิ้น</option>`;
+                    } else {
+                        slotsHtml += `<option value="" disabled style="color: #94a3b8;">${timeRange} น. (${room.name}) — เต็มแล้ว (0/${maxQty})</option>`;
                     }
 
                     currentMins = nextMins;
@@ -749,6 +759,13 @@
             if (!timeSlot) return alert('กรุณาเลือกรอบเวลาซ้อม');
 
             const eq = equipmentData.find(e => e.id === equipmentId);
+            const maxQty = parseInt(eq.qty) || 1;
+            const bookedCountInSlot = bookingsData.filter(b => b.date === date && b.equipmentId === equipmentId && b.timeSlot === timeSlot).length;
+
+            if (bookedCountInSlot >= maxQty) {
+                return alert('ขออภัย รอบเวลานี้อุปกรณ์ถูกจองเต็มโควต้าแล้วครับ!');
+            }
+
             const newBooking = {
                 date,
                 student1,
@@ -813,7 +830,7 @@
 
             document.getElementById('adminEquipmentList').innerHTML = equipmentData.length > 0 ? equipmentData.map(e => `
                 <div class="bg-slate-50 border p-3 rounded-xl flex justify-between items-center text-xs">
-                    <div><div class="font-bold">${e.name}</div><div class="text-slate-500">จำนวน: ${e.qty} | รอบละ ${e.duration} นาที</div></div>
+                    <div><div class="font-bold">${e.name}</div><div class="text-slate-500">จำนวน: ${e.qty} ชิ้น | รอบละ ${e.duration} นาที</div></div>
                     <button onclick="deleteEquipment('${e.id}')" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
                 </div>
             `).join('') : `<div class="text-center py-4 text-slate-400 text-xs">ยังไม่มีอุปกรณ์</div>`;
