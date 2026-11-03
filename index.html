@@ -35,33 +35,43 @@
                 </div>
             </div>
             
-            <div id="userInfoHeader" class="hidden flex items-center gap-3 bg-indigo-950/60 px-3.5 py-1.5 rounded-full border border-indigo-700/50">
-                <div class="text-right">
-                    <div id="currentUserNameDisplay" class="text-sm font-semibold truncate max-w-[200px]">รหัส - ชื่อ</div>
-                </div>
-                <button onclick="logout()" class="text-indigo-300 hover:text-red-400 p-1.5 rounded-full hover:bg-indigo-900 transition" title="ออกจากระบบ">
-                    <i class="fa-solid fa-right-from-bracket"></i>
+            <div class="flex items-center gap-3">
+                <button onclick="openHelpModal()" class="hidden md:flex items-center gap-1.5 bg-indigo-800 hover:bg-indigo-700 text-indigo-100 text-xs px-3 py-1.5 rounded-xl border border-indigo-600 transition" title="วิธีใช้งานระบบ">
+                    <i class="fa-solid fa-circle-question text-amber-300"></i> วิธีใช้งาน
                 </button>
+                <div id="userInfoHeader" class="hidden flex items-center gap-3 bg-indigo-950/60 px-3.5 py-1.5 rounded-full border border-indigo-700/50">
+                    <div class="text-right">
+                        <div id="currentUserNameDisplay" class="text-sm font-semibold truncate max-w-[200px]">รหัส - ชื่อ</div>
+                    </div>
+                    <button onclick="logout()" class="text-indigo-300 hover:text-red-400 p-1.5 rounded-full hover:bg-indigo-900 transition" title="ออกจากระบบ">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
             </div>
         </div>
         
         <!-- Tab Navigation -->
         <nav id="mainNav" class="hidden bg-indigo-950 text-indigo-200 border-t border-indigo-800/50 px-4">
-            <div class="max-w-7xl mx-auto flex space-x-1 overflow-x-auto text-sm">
-                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2.5 font-medium border-b-2 border-indigo-400 text-white flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-chart-line"></i> หน้าหลัก
-                </button>
-                <button onclick="switchTab('booking')" id="tab-booking" class="px-4 py-2.5 font-medium border-b-2 border-transparent hover:text-white flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-calendar-plus"></i> จองซ้อมปฏิบัติ
-                </button>
-                <button onclick="switchTab('all-bookings')" id="tab-all-bookings" class="px-4 py-2.5 font-medium border-b-2 border-transparent hover:text-white flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-list-check"></i> การจองทั้งหมด
-                </button>
-                <button onclick="switchTab('my-bookings')" id="tab-my-bookings" class="px-4 py-2.5 font-medium border-b-2 border-transparent hover:text-white flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-user-clock"></i> คิวของฉัน
-                </button>
-                <button onclick="switchTab('admin')" id="tab-admin" class="px-4 py-2.5 font-medium border-b-2 border-transparent hover:text-white flex items-center gap-2 whitespace-nowrap">
-                    <i class="fa-solid fa-sliders"></i> จัดการระบบ (Admin)
+            <div class="max-w-7xl mx-auto flex justify-between items-center overflow-x-auto text-sm">
+                <div class="flex space-x-1">
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2.5 font-medium border-b-2 border-indigo-400 text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-chart-line"></i> หน้าหลัก
+                    </button>
+                    <button onclick="switchTab('booking')" id="tab-booking" class="px-4 py-2.5 font-medium border-b-2 border-transparent hover:text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-calendar-plus"></i> จองซ้อมปฏิบัติ
+                    </button>
+                    <button onclick="switchTab('all-bookings')" id="tab-all-bookings" class="px-4 py-2.5 font-medium border-b-2 border-transparent hover:text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-list-check"></i> การจองทั้งหมด
+                    </button>
+                    <button onclick="switchTab('my-bookings')" id="tab-my-bookings" class="px-4 py-2.5 font-medium border-b-2 border-transparent hover:text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-user-clock"></i> คิวของฉัน
+                    </button>
+                    <button onclick="switchTab('admin')" id="tab-admin" class="px-4 py-2.5 font-medium border-b-2 border-transparent hover:text-white flex items-center gap-2 whitespace-nowrap">
+                        <i class="fa-solid fa-sliders"></i> จัดการระบบ (Admin)
+                    </button>
+                </div>
+                <button onclick="openHelpModal()" class="md:hidden text-indigo-200 hover:text-white text-xs px-2 py-1 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-question text-amber-300"></i> วิธีใช้งาน
                 </button>
             </div>
         </nav>
@@ -98,6 +108,59 @@
 
                 <button id="btnLoginConfirm" onclick="confirmLogin()" disabled class="w-full bg-slate-300 text-slate-500 py-3 rounded-xl font-bold transition disabled:cursor-not-allowed">
                     เข้าสู่ระบบ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: HELP / USER GUIDE -->
+    <div id="helpModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh]">
+            <div class="bg-gradient-to-r from-indigo-900 to-indigo-700 p-5 text-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
+                        <i class="fa-solid fa-book-open text-indigo-200"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold">วิธีการใช้งานระบบ "จองซ้อมปฏิบัติ"</h3>
+                        <p class="text-xs text-indigo-200">คู่มือการใช้งานสำหรับนักศึกษาและผู้ดูแลระบบ</p>
+                    </div>
+                </div>
+                <button onclick="closeHelpModal()" class="text-indigo-200 hover:text-white p-2 rounded-lg hover:bg-white/10 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-6 text-xs text-slate-700 custom-scrollbar">
+                <!-- Section 1: Booking -->
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 class="font-bold text-sm text-indigo-900 flex items-center gap-2 border-b border-slate-200 pb-2">
+                        <i class="fa-solid fa-calendar-check text-indigo-600"></i> 1. สำหรับการจองคิวซ้อม
+                    </h4>
+                    <ul class="space-y-2 list-disc list-inside text-slate-600 leading-relaxed">
+                        <li><strong class="text-slate-800">เลือกวันที่ต้องการเข้าซ้อม:</strong> ไปที่แท็บ <span class="text-indigo-600 font-semibold">"จองซ้อมปฏิบัติ"</span> แล้วเลือกวันที่ต้องการฝึกซ้อม ระบบจะแสดงรายการอุปกรณ์ที่เปิดให้ซ้อมในวันนั้นทันที</li>
+                        <li><strong class="text-slate-800">เลือกคู่ซ้อมปฏิบัติ:</strong> ช่องผู้จองคนที่ 1 จะล็อกชื่อของคุณอัตโนมัติ ให้เลือกชื่อเพื่อนร่วมกลุ่มในช่อง <span class="text-indigo-600 font-semibold">"ผู้จองคนที่ 2"</span></li>
+                        <li><strong class="text-slate-800">เลือกรอบเวลา:</strong> ระบบจะคำนวณรอบเวลาจากห้องปฏิบัติการที่เปิดในวันนั้น หากอุปกรณ์หรือรอบเวลาใดถูกจองเต็มแล้ว ระบบจะปิดกั้นอัตโนมัติ</li>
+                        <li><strong class="text-slate-800">ตรวจสอบคิวของฉัน:</strong> สามารถดูรายการที่จองไว้หรือกดยกเลิกการจองได้ที่แท็บ <span class="text-indigo-600 font-semibold">"คิวของฉัน"</span></li>
+                    </ul>
+                </div>
+
+                <!-- Section 2: Admin System -->
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 class="font-bold text-sm text-indigo-900 flex items-center gap-2 border-b border-slate-200 pb-2">
+                        <i class="fa-solid fa-sliders text-indigo-600"></i> 2. สำหรับการจัดการระบบ (Admin)
+                    </h4>
+                    <ul class="space-y-2 list-disc list-inside text-slate-600 leading-relaxed">
+                        <li><strong class="text-slate-800">เปิดห้องปฏิบัติการ:</strong> ไปที่แท็บ <span class="text-indigo-600 font-semibold">"จัดการระบบ (Admin)"</span> กดปุ่ม <span class="text-indigo-600 font-semibold">+ เพิ่มห้องเปิดซ้อม</span> ระบุชื่อห้อง วันที่ และช่วงเวลาเปิด-ปิดห้อง</li>
+                        <li><strong class="text-slate-800">เพิ่ม/จัดการอุปกรณ์ซ้อม:</strong> กดปุ่ม <span class="text-emerald-600 font-semibold">+ เพิ่มอุปกรณ์</span> ระบุชื่ออุปกรณ์, วันที่เปิดให้ใช้งาน, จำนวนชิ้น, ระยะเวลาต่อรอบ (นาที) และสามารถ <strong class="text-amber-600">กำหนดเวลาเปิดให้เริ่มจองล่วงหน้า</strong> ได้</li>
+                        <li><strong class="text-slate-800">แก้ไขหรือลบข้อมูล:</strong> รายการห้องหรืออุปกรณ์ที่เพิ่มไปแล้ว สามารถกดปุ่ม <span class="text-indigo-600"><i class="fa-solid fa-pen-to-square"></i> (แก้ไข)</span> หรือปุ่ม <span class="text-red-500"><i class="fa-solid fa-trash"></i> (ลบ)</span> ได้ทันทีแบบ Real-time</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeHelpModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-sm">
+                    รับทราบและเริ่มใช้งาน
                 </button>
             </div>
         </div>
@@ -472,6 +535,8 @@
         }
 
         function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function openHelpModal() { document.getElementById('helpModal').classList.remove('hidden'); }
+        function closeHelpModal() { document.getElementById('helpModal').classList.add('hidden'); }
 
         function handleLoginSearch() {
             const query = document.getElementById('loginSearchInput').value.trim().toLowerCase();
@@ -518,6 +583,9 @@
             localStorage.setItem('ps_current_user', JSON.stringify(currentUser));
             applyLoggedInUser();
             document.getElementById('loginModal').classList.add('hidden');
+            
+            // 💡 เด้งป๊อบอัปคู่มือการใช้งานหลังล็อกอร็จ
+            setTimeout(() => { openHelpModal(); }, 300);
         }
 
         function logout() {
@@ -1035,3 +1103,4 @@
     </script>
 </body>
 </html>
+
